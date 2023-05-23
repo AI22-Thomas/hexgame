@@ -1,4 +1,6 @@
-models
-simple/models
+models/*
+!models/.gitkeep
+simple/models/*
+!simple/models/.gitkeep
 
 .idea

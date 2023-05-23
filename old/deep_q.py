@@ -168,27 +168,39 @@ class DeepQ(object):
             return torch.tensor([random.sample(action_set, 1)], device=self.device,
                                 dtype=torch.long)
 
-    def play(self, env, num_steps=500):
-        """
-        Play 'num_steps' using the current policy network.
-        During play the environment is rendered graphically.
-        """
-        # initialize the environment and get the state
-        state, _ = env.reset()
-        # coerce the state to torch tensor type
-        state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-        for i in range(num_steps):
-            action = self._eps_greedy_action(state, eps=0)
-            observation, reward, terminated, truncated, _ = env.step(action.item())
-            done = terminated or truncated
-            if done:
-                break
-            else:
-                state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-        env.close()
+    def play(self, env, games=10, self_play=False):
+
+        rewards = []
+        for i in range(games):
+            # initialize the environment and get the state
+            state, _ = env.reset()
+            # coerce the state to torch tensor type
+            state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+            for t in count():
+                # select action
+                action = self._eps_greedy_action(state, eps=0)
+                observation, reward, terminated, next_actions = env.step(action.item())
+
+                if terminated:
+                    rewards.append(reward)
+                    break
+
+                if self_play:
+                    action = self._eps_greedy_action(state, eps=0, action_set=next_actions)
+                else:
+                    action = self._eps_greedy_action(state, eps=2, action_set=next_actions)
+                observation2, reward2, terminated2, _ = env.step(action.item())
+
+                if terminated2:
+                    rewards.append(reward2)
+                    break
+
+                state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
+        return rewards
 
     def learn(self, num_episodes=500, batch_size=100, gamma=0.99, eps_start=0.9, eps_end=0.01, eps_decay=1000,
-              target_net_update_rate=0.005, learning_rate=1e-4, print_every=10, save_every=100):
+              target_net_update_rate=0.005, learning_rate=1e-4, print_every=10, save_every=100, start_from_model=None,
+              random_start=False, self_play=False):
         """
         Train using the deep q-learning algorithm.
 
@@ -216,6 +228,11 @@ class DeepQ(object):
             Learning rate for the adam optimizer of torch.
         """
 
+        if start_from_model is not None:
+            if os.path.isfile(start_from_model):
+                self.policy_net.load_state_dict(torch.load(start_from_model))
+                self.target_net.load_state_dict(torch.load(start_from_model))
+
         def eps_by_step(step):
             return eps_end + (eps_start - eps_end) * math.exp(-1. * step / eps_decay)
 
@@ -223,14 +240,17 @@ class DeepQ(object):
 
         steps_done = 0
 
-        best_avg_reward = -1
-
         for i_episode in range(num_episodes):
             state, info = self.env.reset()
-            # # random starting move
-            # action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-            #                       dtype=torch.long)
-            # _, _, _, _ = self.env.step(action.item())
+            # random starting move
+            if random_start:
+                action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                      dtype=torch.long)
+                _, _, _, _ = self.env.step(action.item())
+                # enemy move
+                action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                      dtype=torch.long)
+                _, _, _, _ = self.env.step(action.item())
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
                 steps_done += 1
@@ -241,9 +261,14 @@ class DeepQ(object):
                 done = terminated
                 observation2 = observation
                 if not terminated:
-                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-                                          dtype=torch.long)
-                    observation2, reward2, terminated2, next_action_space2 = self.env.step(action.item())
+                    if self_play:
+                        action = self._eps_greedy_action(observation, eps=eps_by_step(steps_done),
+                                                         action_set=next_action_space)
+                        observation2, reward2, terminated2, next_action_space2 = self.env.step(action.item())
+                    else:
+                        action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                              dtype=torch.long)
+                        observation2, reward2, terminated2, next_action_space2 = self.env.step(action.item())
 
                     if terminated2:
                         reward_t = torch.tensor([reward2], device=self.device)
@@ -275,13 +300,12 @@ class DeepQ(object):
                 self.target_net.load_state_dict(target_net_state_dict)
 
                 if done:
-                    self.reward_history.append(reward)
                     break
             if i_episode % print_every == 0:
                 clear_output(wait=True)
-                avg = self.plot_reward_history(title="Episode {} finished after {} timesteps".format(i_episode, t + 1))
+                self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1))
             if i_episode % save_every == 0:
-                torch.save(self.policy_net.state_dict(), "models/model.pt")
+                torch.save(self.policy_net.state_dict(), "../models/model.pt")
 
     def load_policy(self, path):
         """
@@ -295,20 +319,18 @@ class DeepQ(object):
         new_average = old_average * num_obs / (num_obs + 1) + new_obs / (num_obs + 1)
         return new_average, num_obs + 1
 
-    def plot_reward_history(self, title=""):
+    def evaluate(self, title=""):
         """
         Plot the reward history to standard output.
         """
-        import matplotlib.pyplot as plt
-        averages = [self.reward_history[0]]
-        for i in range(1, len(self.reward_history)):
-            averages.append(self._update_average(averages[-1], i, self.reward_history[i])[0])
-        plt.xlabel("Time")
-        plt.ylabel("Running average of rewards")
+        rewards = self.play(self.env, 500)
+        self.reward_history.append(sum(rewards) / len(rewards))
+        # plot reward history
+        plt.figure()
         plt.title(title)
-        plt.plot(averages, color="black")
+        plt.plot(self.reward_history)
         plt.show()
-        return averages[-1]
+        print("Average reward: {}".format(sum(rewards) / len(rewards)))
 
     def optimize_model(self, optimizer, batch_size, gamma):
         """

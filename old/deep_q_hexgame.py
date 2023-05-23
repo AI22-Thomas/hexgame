@@ -212,7 +212,7 @@ import os
 import torch
 
 # load newest model from models folder
-files = os.listdir('models')
+files = os.listdir('../models')
 # get file with biggest number
 files.sort(key=lambda x: int(x.split('.')[0].split('_')[1]))
 q_learner.load_policy('models/' + files[-1])

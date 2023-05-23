@@ -1,9 +1,3 @@
-# This script uses some packages from the python standard library:
-# copy
-# random
-# pickle
-# Of the above only 'copy' is necessary for basic functionality
-
 class HexEngine(object):
     """
     Objects of this class correspond to a game of Hex.
