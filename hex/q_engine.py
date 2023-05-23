@@ -54,10 +54,10 @@ class QEngine(object):
         # dimensionality of state observations in gym environment
         state, _ = self.env.reset()
         self.reward_history = []
+        self.train_reward_history = []
         self.model.initialize_networks(self.device)
 
     def _eps_greedy_action(self, state, eps, action_set=None):
-
         if action_set is None:
             action_set = self.env.action_space()
         """
@@ -152,9 +152,15 @@ class QEngine(object):
                                       dtype=torch.long)
                 _, _, _, _ = self.env.step(action.item())
                 # enemy move
-                action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-                                      dtype=torch.long)
-                _, _, _, _ = self.env.step(action.item())
+                if self_play:
+                    action = self._eps_greedy_action(
+                        torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0),
+                        eps=eps_by_step(steps_done))
+                    _, _, _, _ = self.env.step(action.item())
+                else:
+                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                          dtype=torch.long)
+                    _, _, _, _ = self.env.step(action.item())
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
                 steps_done += 1
@@ -210,27 +216,42 @@ class QEngine(object):
                         self.model.target_net.load_state_dict(self.model.policy_net.state_dict())
 
                 if done:
+                    self.train_reward_history.append(reward)
                     break
             if i_episode % eval_every == 0:
-                clear_output(wait=True)
                 self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
-                              runs=evaluate_runs)
+                              runs=evaluate_runs, clear=True)
             if i_episode % save_every == 0:
                 torch.save(self.model.policy_net.state_dict(), save_path)
 
-    def evaluate(self, runs=100, title=""):
+    def evaluate(self, runs=100, title="", clear=False):
         """
         Plot the reward history to standard output.
         """
         rewards = self.play(self.env, runs)
         self.reward_history.append(sum(rewards) / len(rewards))
-        # plot reward history
-        plt.figure()
-        plt.title(title)
-        plt.plot(self.reward_history)
-        plt.show()
+
+        if clear:
+            clear_output(wait=True)
         print(title)
         print("Average reward: {}".format(sum(rewards) / len(rewards)))
+
+        averages = [self.train_reward_history[0]]
+        for i in range(1, len(self.train_reward_history)):
+            averages.append(self._update_average(averages[-1], i, self.train_reward_history[i])[0])
+
+        # plot reward history and running average in one firgure with two subplots, side by side
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+        fig.suptitle(title)
+        ax1.plot(self.reward_history)
+        ax1.set_title("Reward history")
+        ax1.set_xlabel("Episode")
+        ax1.set_ylabel("Reward")
+        ax2.plot(averages)
+        ax2.set_title("Running average")
+        ax2.set_xlabel("Episode")
+        ax2.set_ylabel("Average reward")
+        plt.show()
 
     def optimize_model(self, optimizer, batch_size, gamma):
         """
