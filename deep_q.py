@@ -120,8 +120,8 @@ class DeepQ(object):
 
     def __init__(self, env, memory_length=1000):
         self.env = env
-        # self.device = "cpu"
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.memory = ReplayMemory(length=memory_length)
         # number of actions in gym environment
         self.n_actions = len(self.env.action_space())
@@ -158,11 +158,11 @@ class DeepQ(object):
                 # t.max(1) returns the largest column value of each row
                 # the second column of the result is the index of the maximal element
                 net_values = self.policy_net(state)
-                mask = [-10] * len(net_values[0])
+                mask = [-2] * len(net_values[0])
                 for i in action_set:
                     mask[i] = 1
                 mask = torch.tensor(mask, device=self.device, dtype=torch.float32)
-                net_values = net_values * mask
+                net_values = net_values + mask
                 return net_values.max(1)[1].view(1, 1)
         else:
             return torch.tensor([random.sample(action_set, 1)], device=self.device,
@@ -254,7 +254,7 @@ class DeepQ(object):
                     # create mask from next action space
                     mask = [-2] * self.n_actions
                     for i in next_action_space2:
-                        mask[i] = 1.
+                        mask[i] = 1
                     next_action_space = torch.tensor(mask, dtype=torch.float32, device=self.device).unsqueeze(0)
                 else:
                     next_state = None
