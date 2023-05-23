@@ -1,6 +1,5 @@
-from hex_engine import HexEngine
+from hex.hex_engine import HexEngine
 from hex.transformers.hex_env_transformer import HexEnvTransformer
-
 
 class HexEnv(object):
     def __init__(self, board_size, transformer: HexEnvTransformer):

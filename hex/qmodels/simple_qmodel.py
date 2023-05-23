@@ -6,6 +6,7 @@ from hex.qmodels.q_model import QModel
 
 
 class SimpleQModel(QModel):
+    HIDDEN_LAYERS = 1
 
     def _make_network(self):
         layers = []
@@ -14,7 +15,7 @@ class SimpleQModel(QModel):
         layer_num += 1
         layers.append((str(layer_num), nn.ReLU()))
         layer_num += 1
-        for i in range(2):
+        for i in range(SimpleQModel.HIDDEN_LAYERS):
             layers.append((str(layer_num), nn.Linear(128, 128)))
             layer_num += 1
             layers.append((str(layer_num), nn.ReLU()))

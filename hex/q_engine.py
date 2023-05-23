@@ -13,8 +13,8 @@ from collections import namedtuple, deque, OrderedDict
 from itertools import count
 from IPython.display import clear_output
 
-from hex_env import HexEnv
-from qmodels.q_model import QModel
+from hex.hex_env import HexEnv
+from hex.qmodels.q_model import QModel
 
 TransitionData = namedtuple('Transition', ['state', 'action', 'next_state', 'reward', 'next_action_space'])
 
@@ -111,6 +111,11 @@ class QEngine(object):
                 state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
         return rewards
 
+    @staticmethod
+    def _update_average(old_average, num_obs, new_obs):
+        new_average = old_average * num_obs / (num_obs + 1) + new_obs / (num_obs + 1)
+        return new_average, num_obs + 1
+
     def learn(self, num_episodes=500,
               batch_size=100,
               gamma=0.99,
@@ -119,12 +124,14 @@ class QEngine(object):
               eps_decay=1000,
               target_net_update_rate=0.005,
               learning_rate=1e-4,
-              print_every=10,
+              eval_every=10,
               save_every=100,
               start_from_model=None,
               random_start=False,
               self_play=False,
-              save_path="models/model.pt", ):
+              save_path="models/model.pt",
+              evaluate_runs=100,
+              soft_update=True):
 
         if start_from_model is not None:
             if os.path.isfile(start_from_model):
@@ -159,8 +166,10 @@ class QEngine(object):
                 observation2 = observation
                 if not terminated:
                     if self_play:
-                        action = self._eps_greedy_action(observation, eps=eps_by_step(steps_done),
-                                                         action_set=next_action_space)
+                        action = self._eps_greedy_action(
+                            torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0),
+                            eps=eps_by_step(steps_done),
+                            action_set=next_action_space)
                         observation2, reward2, terminated2, next_action_space2 = self.env.step(action.item())
                     else:
                         action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
@@ -189,37 +198,38 @@ class QEngine(object):
                 self.optimize_model(optimizer, batch_size, gamma)
 
                 # soft update
-                target_net_state_dict = self.model.target_net.state_dict()
-                policy_net_state_dict = self.model.policy_net.state_dict()
-                for key in policy_net_state_dict:
-                    target_net_state_dict[key] = policy_net_state_dict[key] * target_net_update_rate + \
-                                                 target_net_state_dict[key] * (1.0 - target_net_update_rate)
-                self.model.target_net.load_state_dict(target_net_state_dict)
+                if soft_update:
+                    target_net_state_dict = self.model.target_net.state_dict()
+                    policy_net_state_dict = self.model.policy_net.state_dict()
+                    for key in policy_net_state_dict:
+                        target_net_state_dict[key] = policy_net_state_dict[key] * target_net_update_rate + \
+                                                     target_net_state_dict[key] * (1.0 - target_net_update_rate)
+                    self.model.target_net.load_state_dict(target_net_state_dict)
+                else:
+                    if steps_done % target_net_update_rate == 0:
+                        self.model.target_net.load_state_dict(self.model.policy_net.state_dict())
 
                 if done:
                     break
-            if i_episode % print_every == 0:
+            if i_episode % eval_every == 0:
                 clear_output(wait=True)
-                self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1))
+                self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
+                              runs=evaluate_runs)
             if i_episode % save_every == 0:
                 torch.save(self.model.policy_net.state_dict(), save_path)
 
-    @staticmethod
-    def _update_average(old_average, num_obs, new_obs):
-        new_average = old_average * num_obs / (num_obs + 1) + new_obs / (num_obs + 1)
-        return new_average, num_obs + 1
-
-    def evaluate(self, title=""):
+    def evaluate(self, runs=100, title=""):
         """
         Plot the reward history to standard output.
         """
-        rewards = self.play(self.env, 500)
+        rewards = self.play(self.env, runs)
         self.reward_history.append(sum(rewards) / len(rewards))
         # plot reward history
         plt.figure()
         plt.title(title)
         plt.plot(self.reward_history)
         plt.show()
+        print(title)
         print("Average reward: {}".format(sum(rewards) / len(rewards)))
 
     def optimize_model(self, optimizer, batch_size, gamma):
