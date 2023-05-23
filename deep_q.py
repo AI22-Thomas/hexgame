@@ -15,7 +15,7 @@ from IPython.display import clear_output
 
 # convenience class to keep transition data straight
 # is used inside 'replayMemory'
-TransitionData = namedtuple('Transition', ['state', 'action', 'next_state', 'reward'])
+TransitionData = namedtuple('Transition', ['state', 'action', 'next_state', 'reward', 'next_action_space'])
 
 
 class ReplayMemory(object):
@@ -34,11 +34,11 @@ class ReplayMemory(object):
         # the deque class is designed for popping from the right and from the left
         self.memory = deque([], maxlen=length)
 
-    def save(self, state, action, next_state, reward):
+    def save(self, state, action, next_state, reward, next_action_space):
         """
         Save the transition consisting of 'state', 'action', 'next_state', 'reward'.
         """
-        self.memory.append(TransitionData(state, action, next_state, reward))
+        self.memory.append(TransitionData(state, action, next_state, reward, next_action_space))
 
     def sample(self, batch_size: int):
         """
@@ -158,11 +158,11 @@ class DeepQ(object):
                 # t.max(1) returns the largest column value of each row
                 # the second column of the result is the index of the maximal element
                 net_values = self.policy_net(state)
-                legal = action_set
-                # set all non legal action to -inf
-                for i in range(len(net_values[0])):
-                    if i not in legal:
-                        net_values[0][i] = -math.inf
+                mask = [-10] * len(net_values[0])
+                for i in action_set:
+                    mask[i] = 1
+                mask = torch.tensor(mask, device=self.device, dtype=torch.float32)
+                net_values = net_values * mask
                 return net_values.max(1)[1].view(1, 1)
         else:
             return torch.tensor([random.sample(action_set, 1)], device=self.device,
@@ -223,22 +223,44 @@ class DeepQ(object):
 
         steps_done = 0
 
+        best_avg_reward = -1
+
         for i_episode in range(num_episodes):
             state, info = self.env.reset()
+            # # random starting move
+            # action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+            #                       dtype=torch.long)
+            # _, _, _, _ = self.env.step(action.item())
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
                 steps_done += 1
                 action = self._eps_greedy_action(state, eps=eps_by_step(steps_done))
-                observation, reward, terminated, truncated = self.env.step(action.item())
+                observation, reward, terminated, next_action_space = self.env.step(action.item())
+
                 reward_t = torch.tensor([reward], device=self.device)
-                done = terminated or truncated
+                done = terminated
+                observation2 = observation
+                if not terminated:
+                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                          dtype=torch.long)
+                    observation2, reward2, terminated2, next_action_space2 = self.env.step(action.item())
+
+                    if terminated2:
+                        reward_t = torch.tensor([reward2], device=self.device)
+                        done = terminated2
 
                 if not done:
-                    next_state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    next_state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    # create mask from next action space
+                    mask = [-2] * self.n_actions
+                    for i in next_action_space2:
+                        mask[i] = 1.
+                    next_action_space = torch.tensor(mask, dtype=torch.float32, device=self.device).unsqueeze(0)
                 else:
                     next_state = None
+                    next_action_space = None
 
-                self.memory.save(state, action, next_state, reward_t)
+                self.memory.save(state, action, next_state, reward_t, next_action_space)
 
                 state = next_state
 
@@ -257,17 +279,9 @@ class DeepQ(object):
                     break
             if i_episode % print_every == 0:
                 clear_output(wait=True)
-                self.plot_reward_history(title="Episode {} finished after {} timesteps".format(i_episode, t + 1))
+                avg = self.plot_reward_history(title="Episode {} finished after {} timesteps".format(i_episode, t + 1))
             if i_episode % save_every == 0:
-                torch.save(self.policy_net.state_dict(), "models/model_{}.pth".format(i_episode))
-                # keep the last 10 models
-                # list files in models directory
-                files = [f for f in os.listdir("models") if os.path.isfile(os.path.join("../models", f))]
-                # sort files by name
-                files.sort(key=lambda x: int(x.split('.')[0].split('_')[1]))
-                # delete all but the last 10 files
-                for f in files[:-10]:
-                    os.remove(os.path.join("models", f))
+                torch.save(self.policy_net.state_dict(), "models/model.pt")
 
     def load_policy(self, path):
         """
@@ -294,6 +308,7 @@ class DeepQ(object):
         plt.title(title)
         plt.plot(averages, color="black")
         plt.show()
+        return averages[-1]
 
     def optimize_model(self, optimizer, batch_size, gamma):
         """
@@ -309,6 +324,7 @@ class DeepQ(object):
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=self.device,
                                       dtype=torch.bool)
         non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+        next_action_spaces_mask = torch.cat([s for s in batch.next_action_space if s is not None])
 
         state_batch = torch.cat(batch.state)
         action_batch = torch.cat(batch.action)
@@ -318,7 +334,9 @@ class DeepQ(object):
 
         next_state_values = torch.zeros(batch_size, device=self.device)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
+            values = self.target_net(non_final_next_states)
+            values = torch.mul(values, next_action_spaces_mask)
+            next_state_values[non_final_mask] = values.max(1)[0].detach()
         expected_state_action_values = (next_state_values * gamma) + reward_batch
 
         # Mean Squared Error loss
