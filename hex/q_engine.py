@@ -60,9 +60,11 @@ class QEngine(object):
         self.model.initialize_networks(self.device)
         self.use_adversary = False
 
-    def _eps_greedy_action(self, state, eps, action_set=None, adversary=False):
+    def _eps_greedy_action(self, state, eps, action_set=None, net=None):
         if action_set is None:
             action_set = self.env.action_space()
+        if net is None:
+            net = self.model.policy_net
         """
         Returns an 'eps'-greedy action.
         Does not modify the object.
@@ -72,7 +74,7 @@ class QEngine(object):
             with torch.no_grad():
                 # t.max(1) returns the largest column value of each row
                 # the second column of the result is the index of the maximal element
-                net_values = self.model.policy_net(state) if not adversary else self.model.adv_net(state)
+                net_values = net(state)
                 if len(net_values[0]) == 1:
                     print("wtf")
                 # mask the actions that are not in the action set (should not be played)
@@ -98,7 +100,7 @@ class QEngine(object):
             for t in count():
                 if play_as_black:
                     if adversary:
-                        action = self._eps_greedy_action(state, eps=0, adversary=adversary)
+                        action = self._eps_greedy_action(state, eps=0, net=self.model.adv_net)
                     else:
                         action = self._eps_greedy_action(state, eps=2)
                 else:
@@ -116,7 +118,7 @@ class QEngine(object):
                     action = self._eps_greedy_action(observation, eps=0)
                 else:
                     if adversary:
-                        action = self._eps_greedy_action(observation, eps=0, adversary=adversary)
+                        action = self._eps_greedy_action(observation, eps=0, net=self.model.adv_net)
                     else:
                         action = self._eps_greedy_action(observation, eps=2)
 
@@ -136,7 +138,7 @@ class QEngine(object):
             return self._eps_greedy_action(
                 state,
                 eps=0,
-                adversary=True)
+                net=self.model.adv_net)
         else:
             return torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
                                 dtype=torch.long)
@@ -156,11 +158,15 @@ class QEngine(object):
               save_path="models/model.pt",
               evaluate_runs=100,
               adversary_threshold=0.7,
+              self_play=False,
               soft_update=True):
 
         if start_from_model is not None:
             if os.path.isfile(start_from_model):
                 self.model.load_model(start_from_model)
+
+        self.use_adversary = self_play
+        self.model.update_adv_net()
 
         def eps_by_step(step):
             return eps_end + (eps_start - eps_end) * math.exp(-1. * step / eps_decay)
@@ -172,20 +178,27 @@ class QEngine(object):
         for i_episode in range(num_episodes):
             state, info = self.env.reset()
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            play_as_white = random.random() > 0.5
             # random starting move
             if random_start:
-                action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-                                      dtype=torch.long)
+                if play_as_white:
+                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                          dtype=torch.long)
+                else:
+                    action = self.adversary_move(state)
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-                # enemy move
-                action = self.adversary_move(state)
+                if play_as_white:
+                    action = self.adversary_move(state)
+                else:
+                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                          dtype=torch.long)
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
                 steps_done += 1
                 play_as_white = random.random() > 0.5
-
                 def play_white():
                     action = self._eps_greedy_action(state, eps=eps_by_step(steps_done))
                     observation, reward, terminated, next_action_space = self.env.step(action.item())
@@ -239,7 +252,6 @@ class QEngine(object):
 
                     return taken_action, observation2, reward_t, done, next_action_space2
 
-                # 50% chance to play as the adversary
                 action, next_state, reward_t, done, next_action_space = play_white() if play_as_white else play_black()
 
                 if not done:
