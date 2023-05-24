@@ -41,10 +41,11 @@ class ReplayMemory(object):
 
 
 class QEngine(object):
-    def __init__(self, env: HexEnv, model: QModel, memory_length=1000, cpu=False, clip_grads=100):
+    def __init__(self, env: HexEnv, model: QModel, memory_length=1000, cpu=False, clip_grads=100, chart=True):
         self.model = model
         self.clip_grads = clip_grads
         self.env = env
+        self.chart = chart
         if cpu:
             self.device = "cpu"
         else:
@@ -93,8 +94,7 @@ class QEngine(object):
             state, _ = env.reset()
             # coerce the state to torch tensor type
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-            # play_as_black = random.random() > 0.5
-            play_as_black = False
+            play_as_black = random.random() > 0.5
             for t in count():
                 if play_as_black:
                     if adversary:
@@ -297,10 +297,11 @@ class QEngine(object):
         print(title)
         print("Average reward: {}".format(sum(rewards) / len(rewards)))
 
-        plt.figure(figsize=(10, 5))
-        plt.title(title)
-        plt.plot(self.reward_history)
-        plt.show()
+        if self.chart:
+            plt.figure(figsize=(10, 5))
+            plt.title(title)
+            plt.plot(self.reward_history)
+            plt.show()
         return avg_rew
 
     def optimize_model(self, optimizer, batch_size, gamma):
