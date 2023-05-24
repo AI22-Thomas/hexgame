@@ -182,18 +182,11 @@ class QEngine(object):
             play_as_white = random.random() > 0.5
             # random starting move
             if random_start:
-                if play_as_white:
-                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
                                           dtype=torch.long)
-                else:
-                    action = self.adversary_move(state)
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-                if play_as_white:
-                    action = self.adversary_move(state)
-                else:
-                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-                                          dtype=torch.long)
+                action = self.adversary_move(state)
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
