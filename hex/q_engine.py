@@ -198,7 +198,6 @@ class QEngine(object):
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
                 steps_done += 1
-                play_as_white = random.random() > 0.5
                 def play_white():
                     action = self._eps_greedy_action(state, eps=eps_by_step(steps_done))
                     observation, reward, terminated, next_action_space = self.env.step(action.item())
@@ -291,7 +290,6 @@ class QEngine(object):
                                     runs=evaluate_runs, clear=True)
                 if rew > adversary_threshold:
                     # update adversary (copy policy net to adversary)
-                    self.use_adversary = True
                     self.model.update_adv_net()
             if i_episode % save_every == 0:
                 torch.save(self.model.policy_net.state_dict(), save_path)
