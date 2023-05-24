@@ -21,7 +21,7 @@ q_learner = QEngine(env,
                     )
 
 # load newest model from models folder
-q_learner.model.load_model("results/long_train_rand_rand_start.pt")
+q_learner.model.load_model("models/model.pt")
 
 
 def machine(board, action_set):

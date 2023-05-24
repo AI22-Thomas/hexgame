@@ -41,8 +41,9 @@ class ReplayMemory(object):
 
 
 class QEngine(object):
-    def __init__(self, env: HexEnv, model: QModel, memory_length=1000, cpu=False):
+    def __init__(self, env: HexEnv, model: QModel, memory_length=1000, cpu=False, clip_grads=100):
         self.model = model
+        self.clip_grads = clip_grads
         self.env = env
         if cpu:
             self.device = "cpu"
@@ -56,8 +57,9 @@ class QEngine(object):
         self.reward_history = []
         self.train_reward_history = []
         self.model.initialize_networks(self.device)
+        self.use_adversary = False
 
-    def _eps_greedy_action(self, state, eps, action_set=None):
+    def _eps_greedy_action(self, state, eps, action_set=None, adversary=False):
         if action_set is None:
             action_set = self.env.action_space()
         """
@@ -69,19 +71,21 @@ class QEngine(object):
             with torch.no_grad():
                 # t.max(1) returns the largest column value of each row
                 # the second column of the result is the index of the maximal element
-                net_values = self.model.policy_net(state)
+                net_values = self.model.policy_net(state) if not adversary else self.model.adv_net(state)
+                if len(net_values[0]) == 1:
+                    print("wtf")
                 # mask the actions that are not in the action set (should not be played)
                 mask = [-2] * len(net_values[0])
                 for i in action_set:
                     mask[i] = 1
                 mask = torch.tensor(mask, device=self.device, dtype=torch.float32)
-                net_values = net_values + mask
+                net_values = net_values * mask
                 return net_values.max(1)[1].view(1, 1)
         else:
             return torch.tensor([random.sample(action_set, 1)], device=self.device,
                                 dtype=torch.long)
 
-    def play(self, env, games=10, self_play=False):
+    def play(self, env, games=10, adversary=False):
 
         rewards = []
         for i in range(games):
@@ -89,20 +93,36 @@ class QEngine(object):
             state, _ = env.reset()
             # coerce the state to torch tensor type
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+            # play_as_black = random.random() > 0.5
+            play_as_black = False
             for t in count():
+                if play_as_black:
+                    if adversary:
+                        action = self._eps_greedy_action(state, eps=0, adversary=adversary)
+                    else:
+                        action = self._eps_greedy_action(state, eps=2)
+                else:
+                    action = self._eps_greedy_action(state, eps=0)
                 # select action
-                action = self._eps_greedy_action(state, eps=0)
                 observation, reward, terminated, next_actions = env.step(action.item())
+                if play_as_black:
+                    reward = -reward
 
                 if terminated:
                     rewards.append(reward)
                     break
-
-                if self_play:
-                    action = self._eps_greedy_action(state, eps=0, action_set=next_actions)
+                observation = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                if play_as_black:
+                    action = self._eps_greedy_action(observation, eps=0)
                 else:
-                    action = self._eps_greedy_action(state, eps=2, action_set=next_actions)
+                    if adversary:
+                        action = self._eps_greedy_action(observation, eps=0, adversary=adversary)
+                    else:
+                        action = self._eps_greedy_action(observation, eps=2)
+
                 observation2, reward2, terminated2, _ = env.step(action.item())
+                if play_as_black:
+                    reward2 = -reward2
 
                 if terminated2:
                     rewards.append(reward2)
@@ -111,10 +131,15 @@ class QEngine(object):
                 state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
         return rewards
 
-    @staticmethod
-    def _update_average(old_average, num_obs, new_obs):
-        new_average = old_average * num_obs / (num_obs + 1) + new_obs / (num_obs + 1)
-        return new_average, num_obs + 1
+    def adversary_move(self, state):
+        if self.use_adversary:
+            return self._eps_greedy_action(
+                state,
+                eps=0,
+                adversary=True)
+        else:
+            return torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
+                                dtype=torch.long)
 
     def learn(self, num_episodes=500,
               batch_size=100,
@@ -128,9 +153,9 @@ class QEngine(object):
               save_every=100,
               start_from_model=None,
               random_start=False,
-              self_play=False,
               save_path="models/model.pt",
               evaluate_runs=100,
+              adversary_threshold=0.7,
               soft_update=True):
 
         if start_from_model is not None:
@@ -140,57 +165,88 @@ class QEngine(object):
         def eps_by_step(step):
             return eps_end + (eps_start - eps_end) * math.exp(-1. * step / eps_decay)
 
-        optimizer = optim.Adam(self.model.policy_net.parameters(), lr=learning_rate, amsgrad=True)
+        optimizer = optim.SGD(self.model.policy_net.parameters(), lr=learning_rate, momentum=0.9)
 
         steps_done = 0
 
         for i_episode in range(num_episodes):
             state, info = self.env.reset()
+            state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             # random starting move
             if random_start:
                 action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
                                       dtype=torch.long)
-                _, _, _, _ = self.env.step(action.item())
+                state, _, _, _ = self.env.step(action.item())
+                state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
                 # enemy move
-                if self_play:
-                    action = self._eps_greedy_action(
-                        torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0),
-                        eps=eps_by_step(steps_done))
-                    _, _, _, _ = self.env.step(action.item())
-                else:
-                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-                                          dtype=torch.long)
-                    _, _, _, _ = self.env.step(action.item())
-            state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                action = self.adversary_move(state)
+                state, _, _, _ = self.env.step(action.item())
+                state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             for t in count():
                 steps_done += 1
-                action = self._eps_greedy_action(state, eps=eps_by_step(steps_done))
-                observation, reward, terminated, next_action_space = self.env.step(action.item())
+                play_as_white = random.random() > 0.5
 
-                reward_t = torch.tensor([reward], device=self.device)
-                done = terminated
-                observation2 = observation
-                if not terminated:
-                    if self_play:
-                        action = self._eps_greedy_action(
-                            torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0),
-                            eps=eps_by_step(steps_done),
-                            action_set=next_action_space)
+                def play_white():
+                    action = self._eps_greedy_action(state, eps=eps_by_step(steps_done))
+                    observation, reward, terminated, next_action_space = self.env.step(action.item())
+
+                    taken_action = action
+                    reward_t = torch.tensor([reward], device=self.device)
+                    done = terminated
+                    observation2 = observation
+                    next_action_space2 = None
+                    if not terminated:
+                        action = self.adversary_move(
+                            torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+                        )
                         observation2, reward2, terminated2, next_action_space2 = self.env.step(action.item())
+
+                        if terminated2:
+                            reward_t = torch.tensor([reward2], device=self.device)
+                            done = terminated2
+                    return taken_action, observation2, reward_t, done, next_action_space2
+
+                def play_black():
+                    action = self.adversary_move(state)
+
+                    observation, _, terminated, next_action_space = self.env.simulate(action.item())
+                    if terminated:
+                        return play_white()
+                    self.env.step(action.item())
+
+                    action = self._eps_greedy_action(
+                        torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0),
+                        eps=eps_by_step(steps_done),
+                        action_set=next_action_space)
+                    observation, reward, terminated, next_action_space = self.env.step(action.item())
+                    taken_action = action
+                    # flip reward as we are playing as black
+                    reward_t = torch.tensor([-reward], device=self.device)
+                    done = terminated
+                    observation2 = observation
+                    next_action_space2 = None
+                    if terminated:
+                        done = terminated
                     else:
-                        action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-                                              dtype=torch.long)
-                        observation2, reward2, terminated2, next_action_space2 = self.env.step(action.item())
+                        # simulate adversary move
+                        action = self.adversary_move(
+                            torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0))
+                        observation2, reward2, terminated2, next_action_space2 = self.env.simulate(action.item())
+                        if terminated2:
+                            # flip reward as we are playing as black
+                            reward_t = torch.tensor([-reward2], device=self.device)
+                            done = terminated2
 
-                    if terminated2:
-                        reward_t = torch.tensor([reward2], device=self.device)
-                        done = terminated2
+                    return taken_action, observation2, reward_t, done, next_action_space2
+
+                # 50% chance to play as the adversary
+                action, next_state, reward_t, done, next_action_space = play_white() if play_as_white else play_black()
 
                 if not done:
-                    next_state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    next_state = torch.tensor(next_state, dtype=torch.float32, device=self.device).unsqueeze(0)
                     # create mask from next action space (actions that are not in the action space should not be played)
                     mask = [-2] * self.n_actions
-                    for i in next_action_space2:
+                    for i in next_action_space:
                         mask[i] = 1
                     next_action_space = torch.tensor(mask, dtype=torch.float32, device=self.device).unsqueeze(0)
                 else:
@@ -216,11 +272,15 @@ class QEngine(object):
                         self.model.target_net.load_state_dict(self.model.policy_net.state_dict())
 
                 if done:
-                    self.train_reward_history.append(reward)
+                    self.train_reward_history.append(reward_t.item())
                     break
             if i_episode % eval_every == 0:
-                self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
-                              runs=evaluate_runs, clear=True)
+                rew = self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
+                                    runs=evaluate_runs, clear=True)
+                if rew > adversary_threshold:
+                    # update adversary (copy policy net to adversary)
+                    self.use_adversary = True
+                    self.model.update_adv_net()
             if i_episode % save_every == 0:
                 torch.save(self.model.policy_net.state_dict(), save_path)
 
@@ -228,30 +288,20 @@ class QEngine(object):
         """
         Plot the reward history to standard output.
         """
-        rewards = self.play(self.env, runs)
-        self.reward_history.append(sum(rewards) / len(rewards))
+        rewards = self.play(self.env, runs, adversary=self.use_adversary)
+        avg_rew = sum(rewards) / len(rewards)
+        self.reward_history.append(avg_rew)
 
         if clear:
             clear_output(wait=True)
         print(title)
         print("Average reward: {}".format(sum(rewards) / len(rewards)))
 
-        averages = [self.train_reward_history[0]]
-        for i in range(1, len(self.train_reward_history)):
-            averages.append(self._update_average(averages[-1], i, self.train_reward_history[i])[0])
-
-        # plot reward history and running average in one firgure with two subplots, side by side
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-        fig.suptitle(title)
-        ax1.plot(self.reward_history)
-        ax1.set_title("Reward history")
-        ax1.set_xlabel("Episode")
-        ax1.set_ylabel("Reward")
-        ax2.plot(averages)
-        ax2.set_title("Running average")
-        ax2.set_xlabel("Episode")
-        ax2.set_ylabel("Average reward")
+        plt.figure(figsize=(10, 5))
+        plt.title(title)
+        plt.plot(self.reward_history)
         plt.show()
+        return avg_rew
 
     def optimize_model(self, optimizer, batch_size, gamma):
         """
@@ -290,5 +340,5 @@ class QEngine(object):
         # optimize the policy network
         optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.model.policy_net.parameters(), 100)
+        torch.nn.utils.clip_grad_norm_(self.model.policy_net.parameters(), self.clip_grads)
         optimizer.step()

@@ -16,10 +16,11 @@ env.reset()
 
 q_learner = QEngine(env,
                     # ConvQModel(env.dim_input(), env.dim_output())
-                    SimpleQModel(env.dim_input(), env.dim_output())
+                    SimpleQModel(env.dim_input(), env.dim_output()),
+                    clip_grads=32
                     )
 q_learner.learn(batch_size=64,
-                num_episodes=2000000,
+                num_episodes=20000,
                 eps_start=0.1,
                 eps_end=0.1,
                 eps_decay=1,
@@ -28,11 +29,11 @@ q_learner.learn(batch_size=64,
                 soft_update=True,
                 # soft_update=False,
                 # target_net_update_rate=100,
-                learning_rate=0.0001,
-                eval_every=100,
+                learning_rate=0.0007,
+                eval_every=200,
                 save_every=100,
                 random_start=True,
-                self_play=False,
+                adversary_threshold=0.9,
                 start_from_model="models/model.pt",
                 save_path="models/model.pt",
                 # start_from_model="models/model_conv.pt",

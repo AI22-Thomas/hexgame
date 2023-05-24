@@ -1,3 +1,5 @@
+import copy
+
 from hex.hex_engine import HexEngine
 from hex.transformers.hex_env_transformer import HexEnvTransformer
 
@@ -20,6 +22,19 @@ class HexEnv(object):
     def action_space(self):
         return [self.engine.coordinate_to_scalar(x) for x in
                 self.engine.get_action_space(recode_black_as_white=self.engine.player == -1)]
+
+
+    def simulate(self, action):
+
+        board = copy.deepcopy(self.engine.board)
+        obs, reward, done, next_actions = self.step(action)
+
+        self.engine.board = board
+        self.engine.history.pop()
+        self.engine.winner = 0
+        self.engine.player *= -1
+
+        return obs, reward, done, next_actions
 
     def step(self, action):
         action = self.engine.scalar_to_coordinates(action)

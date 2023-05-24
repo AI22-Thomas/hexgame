@@ -7,7 +7,7 @@ from hex.qmodels.q_model import QModel
 
 class ConvQModel(QModel):
 
-    def _make_network(self):
+    def make_network(self):
         net = nn.Sequential()
         conv = nn.Conv2d(6, 32, kernel_size=3, stride=1, padding=1)
         # 3x3 weights with 6 channels

@@ -8,7 +8,7 @@ from hex.qmodels.q_model import QModel
 class SimpleQModel(QModel):
     HIDDEN_LAYERS = 1
 
-    def _make_network(self):
+    def make_network(self):
         layers = []
         layer_num = 0
         layers.append((str(layer_num), nn.Linear(self.input_size, 128)))
@@ -23,5 +23,4 @@ class SimpleQModel(QModel):
         layers.append((str(layer_num), nn.Linear(128, self.output_size)))
         layer_num += 1
         layers.append((str(layer_num), nn.Sigmoid()))
-        net = nn.Sequential(OrderedDict(layers))
-        return net
+        return nn.Sequential(OrderedDict(layers))
