@@ -28,6 +28,8 @@ class ConvQModel(QModel):
         net.add_module("flatten", nn.Flatten())
         net.add_module("fc1", nn.Linear(32 * self.input_size * self.input_size, 128))
         net.add_module("relu2", nn.ReLU())
-        net.add_module("fc2", nn.Linear(128, self.output_size))
+        net.add_module("fc2", nn.Linear(128,128))
+        net.add_module("relu3", nn.ReLU())
+        net.add_module("fc3", nn.Linear(128, self.output_size))
         net.add_module("sigmoid", nn.Sigmoid())
         return net
