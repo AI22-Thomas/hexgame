@@ -38,8 +38,17 @@ def b_machine(board, action_set):
     return env.engine.recode_coordinates(
         env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set)))
 
+Wins= []
 
-env.engine.reset()
-env.engine.machine_vs_machine(machine, None)
-# env.engine.machine_vs_machine(machine, b_machine)
-# env.engine.human_vs_machine(1, b_machine)
+while True: 
+    env.engine.reset()
+    env.engine.machine_vs_machine(machine, None)
+    #env.engine.machine_vs_machine(None, b_machine)
+    Wins.append(env.engine.winner)
+    print("White Wins: ", Wins.count(1))
+    print("Black Wins: ", Wins.count(-1))
+    
+   
+    #stop until I press continue
+    # env.engine.machine_vs_machine(machine, b_machine)
+    # env.engine.human_vs_machine(1, b_machine)

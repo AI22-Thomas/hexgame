@@ -283,7 +283,8 @@ class QEngine(object):
                                     runs=evaluate_runs, clear=True)
                 if rew > adversary_threshold:
                     # update adversary (copy policy net to adversary)
-                    self.model.update_adv_net()
+                    print("would have updated Net")
+                    #self.model.update_adv_net()
             if i_episode % save_every == 0:
                 torch.save(self.model.policy_net.state_dict(), save_path)
 
@@ -295,11 +296,19 @@ class QEngine(object):
         avg_rew = sum(rewards) / len(rewards)
         self.reward_history.append(avg_rew)
 
+        #plot rewards from testplay
+        plt.figure(figsize=(10, 5))
+        plt.title("Rewards from Testplay")
+        plt.plot(rewards)
+        plt.show()
+        
+        
         if clear:
             clear_output(wait=True)
         print(title)
         print("Average reward: {}".format(sum(rewards) / len(rewards)))
 
+        
         if self.chart:
             plt.figure(figsize=(10, 5))
             plt.title(title)
