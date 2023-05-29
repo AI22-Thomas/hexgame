@@ -1,4 +1,8 @@
 import sys
+
+from hex.adversary.random_adversary import RandomAdversary
+from hex.adversary.simple_adversary import SimpleAdversary
+
 sys.path.append("/home/ai22m008/.local/lib/python3.8/site-packages/")
 from hex.hex_env import HexEnv
 from hex.q_engine import QEngine
@@ -7,19 +11,25 @@ from hex.qmodels.simple_qmodel import SimpleQModel
 from hex.transformers.conv_transformer import ConvTransfomer
 from hex.transformers.simple_transformer import SimpleTransfomer
 
-BOARD_SIZE = 5
+BOARD_SIZE = 7
 
 env = HexEnv(BOARD_SIZE,
-             # transformer=ConvTransfomer()
+             # transformer=ConvTransfomer(),
              transformer=SimpleTransfomer()
              )
 env.reset()
 
 q_learner = QEngine(env,
-                    # ConvQModel(env.dim_input(), env.dim_output())
+                    # ConvQModel(env.dim_input(), env.dim_output()),
                     SimpleQModel(env.dim_input(), env.dim_output()),
                     clip_grads=32,
-                    chart=True
+                    chart=True,  # Whether to plot a chart of the rewards
+                    # random play
+                    # adversary=RandomAdversary(),
+                    # self play
+                    adversary=SimpleAdversary(update_threshold=0.8,
+                                              check_runs=100,
+                                              check_interval=100),
                     )
 q_learner.learn(batch_size=64,
                 num_episodes=20000,
@@ -27,17 +37,18 @@ q_learner.learn(batch_size=64,
                 eps_end=0.1,
                 eps_decay=1,
                 gamma=1,
-                target_net_update_rate=0.0008,
-                soft_update=True,
+                # target_net_update_rate=0.001,
+                # soft_update=True,
+                soft_update=False,
+                target_net_update_rate=50,
                 learning_rate=0.001,
-                eval_every=200,
+                eval_every=250,
                 save_every=100,
-                random_start=True,
-                self_play=True,
-                adversary_threshold=0.9,
+                random_start=False,
                 start_from_model="models/model.pt",
                 save_path="models/model.pt",
                 # start_from_model="models/model_conv.pt",
                 # save_path="models/model_conv.pt",
-                evaluate_runs=100
+                evaluate_runs=150,
+                clip_grads=32
                 )
