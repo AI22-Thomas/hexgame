@@ -26,6 +26,7 @@ class SimpleAdversary(BaseAdversary):
         self.net.eval()
 
     def update(self, q_learner, epoch, showPlot=False):
+        snaps = os.listdir("models/snaps")
 
         if epoch == 0:
             snaps.sort(key=lambda x: float(x.split("_")[1].split(".")[0]))
@@ -68,14 +69,13 @@ class SimpleAdversary(BaseAdversary):
                 #    os.remove("models/snaps/" + snaps[i])
                 # save model with timestamp
                 
-                snaps = os.listdir("models/snaps")
                 #check if items in snaps
                 if len(snaps) == 0:
                     print("Start... changed to current model")
                     self.net.load_state_dict(q_learner.model.policy_net.state_dict())     
                 else:  
                     #update adversary model with current QLearning model or randomly a model from models/snaps
-                    if random.random() < 0.25:
+                    if random.random() < 0.75:
                         print("Changed to current model")
                         self.net.load_state_dict(q_learner.model.policy_net.state_dict())
                     else:

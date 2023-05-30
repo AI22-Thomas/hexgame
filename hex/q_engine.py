@@ -47,10 +47,12 @@ class QEngine(object):
         self.model = model
         self.env = env
         self.chart = chart
-        if cpu:
-            self.device = "cpu"
-        else:
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        #if cpu:
+        #    self.device = "cpu"
+        #else:
+        #    self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda")
+
         self.memory = ReplayMemory(length=memory_length)
         # number of actions in gym environment
         self.n_actions = len(self.env.action_space())
@@ -94,6 +96,8 @@ class QEngine(object):
         if(playWithRandomStart):
             epsRew = 2
         rewards = []
+
+        alreadyDoneStartMoves= []
         #for i in range(env.board_size * env.board_size):
         for i in range(env.board_size * env.board_size * 4):
             # initialize the environment and get the state
@@ -112,7 +116,11 @@ class QEngine(object):
                 action = self.adversary.get_action(state, self)
             else:
                 action = self._eps_greedy_action(state, eps=epsRew)
-                #TODO: translate i to action from action space (has to be a tensor in the end)
+                #TODO: 
+                #get valid action space
+                #take random action from valid action space, that wasnt done in a before play
+
+
             #do the action
             observation, reward, terminated, next_actions = env.step(action.item())
             observation = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -292,7 +300,7 @@ class QEngine(object):
                     winners.append(1)
                 else:
                     winners.append(-1)
-            if i_episode % 55 == 0:
+            if i_episode % (eval_every/4) == 0:
                 print("Self Wins: ", winners.count(1), "Adv Wins: ", winners.count(-1))
 
             if i_episode % eval_every == 0:
