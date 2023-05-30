@@ -97,9 +97,10 @@ class QEngine(object):
             epsRew = 2
         rewards = []
 
-        alreadyDoneStartMoves= []
+        alreadyDoneStartMovesW= []
+        alreadyDoneStartMovesB= []
         #for i in range(env.board_size * env.board_size):
-        for i in range(env.board_size * env.board_size * 4):
+        for i in range(env.board_size * env.board_size):
             # initialize the environment and get the state
             state, _ = env.reset()
             # coerce the state to torch tensor type
@@ -115,26 +116,40 @@ class QEngine(object):
             if play_as_black:
                 action = self.adversary.get_action(state, self)
             else:
-                action = self._eps_greedy_action(state, eps=epsRew)
-                #TODO: 
-                #get valid action space
-                #take random action from valid action space, that wasnt done in a before play
+                #TODO: get action from action space that wasnt done before (has to be a tensor in the end)
+                action = None
+                while(action == None):
+                    action = self._eps_greedy_action(state, eps=epsRew)
+                    if(action in alreadyDoneStartMovesW):
+                        action = None
+                    else:
+                        alreadyDoneStartMovesW.append(action)  
+
 
 
             #do the action
             observation, reward, terminated, next_actions = env.step(action.item())
             observation = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
             if play_as_black:
-                action = self._eps_greedy_action(observation, eps=epsRew)
-                #TODO: translate i to action from action space (has to be a tensor in the end)
+                #TODO: get action from action space that wasnt done before (has to be a tensor in the end)
+                action = None
+                while(action == None):
+                    action = self._eps_greedy_action(state, eps=epsRew)#
+                    if(i == 48):
+                        print("Break Black at End")
+                        break
+                    if(action in alreadyDoneStartMovesB):
+                        action = None
+                    else:
+                        alreadyDoneStartMovesB.append(action) 
             else:
                 action = self.adversary.get_action(observation, self)
             observation2, reward2, terminated2, _ = env.step(action.item())
             state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
-            
-            if printBoard:
+            if printBoard and i & 10:
                 env.engine.print()
 
+            #print("Play as Black: ", play_as_black, " at epoch: ", i, ", Play Was: ",  )
             for t in count():
                 if play_as_black:
                     action = self.adversary.get_action(state, self)
@@ -161,7 +176,7 @@ class QEngine(object):
                 if terminated2:
                     rewards.append(reward2)
                     break
-                if printBoard:
+                if printBoard and i & 10:
                     env.engine.print()
             
                 state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -301,10 +316,10 @@ class QEngine(object):
             if i_episode % (eval_every/4) == 0:
                 print("Self Wins: ", winners.count(1), "Adv Wins: ", winners.count(-1))
 
-            if i_episode % eval_every == 0:
+            if i_episode % (eval_every-1) == 0:
                     winners.clear()
-                    self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
-                              runs=evaluate_runs, clear=True)
+                    #self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
+                    #          runs=evaluate_runs, clear=True)
             if i_episode % save_every == 0:
                 torch.save(self.model.policy_net.state_dict(), save_path)
 

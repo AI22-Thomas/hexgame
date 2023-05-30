@@ -29,7 +29,7 @@ q_learner = QEngine(env,
                     # random play
                     #adversary=RandomAdversary(),
                     # self play
-                    adversary=SimpleAdversary(update_threshold=0.95,check_interval=1000),
+                    adversary=SimpleAdversary(update_threshold=0.95,check_interval=500),
                     )
 q_learner.learn(batch_size=128,
                 num_episodes=2500000,
@@ -42,7 +42,7 @@ q_learner.learn(batch_size=128,
                 soft_update=False,
                 target_net_update_rate=10000,
                 learning_rate=0.001,
-                eval_every=1000,
+                eval_every=500,
                 save_every=100,
                 random_start=True,
                 start_from_model="models/model.pt",

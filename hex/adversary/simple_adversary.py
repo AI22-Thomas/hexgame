@@ -19,7 +19,7 @@ class SimpleAdversary(BaseAdversary):
         self.update_threshold = update_threshold
         self.check_interval = check_interval
         self.runs = 0
-
+        self.netChanges = 0
     def init(self, q_learner):
         self.net = q_learner.model.make_network().to(q_learner.device)
         self.net.load_state_dict(q_learner.model.policy_net.state_dict())
@@ -29,6 +29,10 @@ class SimpleAdversary(BaseAdversary):
         snaps = os.listdir("models/snaps")
 
         if epoch == 0:
+            self.netChanges +=1
+            self.net.load_state_dict(q_learner.model.policy_net.state_dict())
+            self.net.eval()
+            return
             #check if snaps in folder
             if len(snaps) == 0:
                 print("No snaps found in folder")
@@ -47,8 +51,8 @@ class SimpleAdversary(BaseAdversary):
 
         if epoch % self.check_interval == 0:
             #Cheeck iuf model is better or worse than before (trained model vs current adversary)
-            rewardsW = q_learner.play(q_learner.env, 100, play_as_black=False, randomColorOff=True, playWithRandomStart=True)
-            rewardsB = q_learner.play(q_learner.env, 100, play_as_black=True, randomColorOff=True, playWithRandomStart=True)
+            rewardsW = q_learner.play(q_learner.env, 100, play_as_black=False, randomColorOff=True, playWithRandomStart=True, printBoard=True)
+            rewardsB = q_learner.play(q_learner.env, 100, play_as_black=True, randomColorOff=True, playWithRandomStart=True, printBoard=True)
 
             if showPlot:
                 #plot rewardsW & rewardsW
@@ -67,6 +71,7 @@ class SimpleAdversary(BaseAdversary):
             self.runs +=1;
             if avg_rew > self.update_threshold:
                 print("Updated adversary at epoch", epoch)
+                self.netChanges +=1
                 #change to model 
                 ## get all files in snap folder
                 #snaps = os.listdir("models/snaps")
@@ -82,8 +87,9 @@ class SimpleAdversary(BaseAdversary):
                     self.net.load_state_dict(q_learner.model.policy_net.state_dict())     
                 else:  
                     #update adversary model with current QLearning model or randomly a model from models/snaps
-                    if random.random() < 0.35:
+                    if self.netChanges == 3:
                         print("Changed to current model")
+                        self.netChanges = 0
                         self.net.load_state_dict(q_learner.model.policy_net.state_dict())
                     else:
                         #get all files in snap folder
