@@ -9,7 +9,7 @@ from hex.qmodels.simple_qmodel import SimpleQModel
 from hex.transformers.conv_transformer import ConvTransfomer
 from hex.transformers.simple_transformer import SimpleTransfomer
 
-BOARD_SIZE = 7
+BOARD_SIZE = 5
 
 env = HexEnv(BOARD_SIZE,
              # transformer=ConvTransfomer()
@@ -55,7 +55,8 @@ for i in range(800):
     env.engine.reset()
     
     #env.engine.machine_vs_machine(machine, None)
-    env.engine.human_vs_machine(human_player=2, machine=b_machine)
+    env.engine.machine_vs_machine(None, b_machine)
+    #env.engine.human_vs_machine(human_player=2, machine=b_machine)
     #env.engine.machine_vs_machine(None, b_machine)
     if env.engine.winner == -1:
         black_wins += 1

@@ -28,7 +28,11 @@ class SimpleAdversary(BaseAdversary):
     def update(self, q_learner, epoch, showPlot=False):
 
         if epoch == 0:
-            self.net.load_state_dict(q_learner.model.policy_net.state_dict())
+            snaps.sort(key=lambda x: float(x.split("_")[1].split(".")[0]))
+            #load random model
+            snap = snaps[random.randint(0, len(snaps) - 1)]
+            self.net.load_state_dict(torch.load("models/snaps/" + snap))
+            print("changed to model: ", snap)            
             self.net.eval()
             print("Updated adversary at epoch 0")
             return

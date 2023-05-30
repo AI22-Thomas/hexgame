@@ -26,9 +26,8 @@ q_learner = QEngine(env,
                     # random play
                     #adversary=RandomAdversary(),
                     # self play
-                    adversary=SimpleAdversary(update_threshold=0.95,check_interval=100),
+                    adversary=SimpleAdversary(update_threshold=0.95,check_interval=250),
                     )
-
 q_learner.learn(batch_size=64,
                 num_episodes=150000,
                 eps_start=0.1,
@@ -39,7 +38,7 @@ q_learner.learn(batch_size=64,
                 # soft_update=True,
                 soft_update=False,
                 target_net_update_rate=50,
-                learning_rate=0.01,
+                learning_rate=0.005,
                 eval_every=250,
                 save_every=100,
                 random_start=True,
@@ -48,5 +47,6 @@ q_learner.learn(batch_size=64,
                 # start_from_model="models/model_conv.pt",
                 # save_path="models/model_conv.pt",
                 evaluate_runs=150,
-                clip_grads=32
+                clip_grads=32,
+                playAsColor=0.5
                 )
