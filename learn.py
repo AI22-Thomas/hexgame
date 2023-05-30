@@ -11,7 +11,7 @@ from hex.qmodels.simple_qmodel import SimpleQModel
 from hex.transformers.conv_transformer import ConvTransfomer
 from hex.transformers.simple_transformer import SimpleTransfomer
 
-BOARD_SIZE = 7
+BOARD_SIZE = 5
 
 env = HexEnv(BOARD_SIZE,
              # transformer=ConvTransfomer(),
@@ -22,17 +22,15 @@ env.reset()
 q_learner = QEngine(env,
                     # ConvQModel(env.dim_input(), env.dim_output()),
                     SimpleQModel(env.dim_input(), env.dim_output()),
-                    clip_grads=32,
-                    chart=True,  # Whether to plot a chart of the rewards
+                    chart=False,  # Whether to plot a chart of the rewards
                     # random play
-                    # adversary=RandomAdversary(),
+                    #adversary=RandomAdversary(),
                     # self play
-                    adversary=SimpleAdversary(update_threshold=0.8,
-                                              check_runs=100,
-                                              check_interval=100),
+                    adversary=SimpleAdversary(update_threshold=0.95,check_interval=100),
                     )
+
 q_learner.learn(batch_size=64,
-                num_episodes=20000,
+                num_episodes=150000,
                 eps_start=0.1,
                 eps_end=0.1,
                 eps_decay=1,
@@ -41,10 +39,10 @@ q_learner.learn(batch_size=64,
                 # soft_update=True,
                 soft_update=False,
                 target_net_update_rate=50,
-                learning_rate=0.001,
+                learning_rate=0.01,
                 eval_every=250,
                 save_every=100,
-                random_start=False,
+                random_start=True,
                 start_from_model="models/model.pt",
                 save_path="models/model.pt",
                 # start_from_model="models/model_conv.pt",

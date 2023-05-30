@@ -53,13 +53,19 @@ black_wins = 0
 white_wins = 0
 for i in range(800):
     env.engine.reset()
-    env.engine.machine_vs_machine(machine, b_straight)
+    
+    #env.engine.machine_vs_machine(machine, None)
+    env.engine.human_vs_machine(human_player=2, machine=b_machine)
+    #env.engine.machine_vs_machine(None, b_machine)
     if env.engine.winner == -1:
         black_wins += 1
     else:
         white_wins += 1
 
-print("Black wins: ", black_wins)
-print("White wins: ", white_wins)
+    print("Black wins: ", black_wins)
+    print("White wins: ", white_wins)
+    #continue on enter
+    input()
+    
 # env.engine.machine_vs_machine(machine, b_machine)
 # env.engine.human_vs_machine(-1, machine)

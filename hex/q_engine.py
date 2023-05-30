@@ -88,15 +88,43 @@ class QEngine(object):
             return torch.tensor([random.sample(action_set, 1)], device=self.device,
                                 dtype=torch.long)
 
-    def play(self, env, games=10):
+    def play(self, env, games=10, play_as_black=False, randomColorOff=False, printBoard=False, playWithRandomStart = False):
 
+        epsRew = 0
+        if(playWithRandomStart):
+            epsRew = 2
         rewards = []
-        for i in range(games):
+        for i in range(env.board_size * env.board_size):
             # initialize the environment and get the state
             state, _ = env.reset()
             # coerce the state to torch tensor type
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-            play_as_black = random.random() > 0.5
+            
+            if randomColorOff == False:
+                play_as_black = random.random() > 0.5
+
+            #Current: always a random action at start
+            #TODO: should be a valid move that has not been done before
+            
+            # select action  
+            if play_as_black:
+                action = self.adversary.get_action(state, self)
+            else:
+                action = self._eps_greedy_action(state, eps=epsRew)
+                #TODO: translate i to action from action space (has to be a tensor in the end)
+            #do the action
+            observation, reward, terminated, next_actions = env.step(action.item())
+            observation = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+            if play_as_black:
+                action = self._eps_greedy_action(observation, eps=epsRew)
+                #TODO: translate i to action from action space (has to be a tensor in the end)
+            else:
+                action = self.adversary.get_action(observation, self)
+            observation2, reward2, terminated2, _ = env.step(action.item())
+            state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
+            if printBoard:
+                env.engine.print()
+
             for t in count():
                 if play_as_black:
                     action = self.adversary.get_action(state, self)
@@ -123,7 +151,9 @@ class QEngine(object):
                 if terminated2:
                     rewards.append(reward2)
                     break
-
+                if printBoard:
+                    env.engine.print()
+            
                 state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
         return rewards
 
@@ -155,6 +185,7 @@ class QEngine(object):
 
         steps_done = 0
 
+        winners = []
         for i_episode in range(num_episodes):
             # May update the environment, so do that before resetting
             self.adversary.update(self, epoch=i_episode)
@@ -166,21 +197,30 @@ class QEngine(object):
             play_as_white = random.random() > 0.5
             # random starting move
             if random_start:
-                action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
-                                      dtype=torch.long)
-                state, _, _, _ = self.env.step(action.item())
                 if play_as_white:
+                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device, dtype=torch.long)
+                    state, _, _, _ = self.env.step(action.item())
                     state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
                     action = self.adversary.get_action(state, self)
                     state, _, _, _ = self.env.step(action.item())
-                state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-            elif not play_as_white:
+                    state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                else:
+                    # Ensure one move is played, so the agent is playing black
+                    action = self.adversary.get_action(state, self)
+                    state, _, _, _ = self.env.step(action.item())
+                    state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device, dtype=torch.long)
+                    state, _, _, _ = self.env.step(action.item())
+                    state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+            
+            if(not play_as_white and not random_start):
                 # Ensure one move is played, so the agent is playing black
                 action = self.adversary.get_action(state, self)
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
             for t in count():
+
                 steps_done += 1
 
                 action = self._eps_greedy_action(state, eps=eps_by_step(steps_done))
@@ -228,11 +268,38 @@ class QEngine(object):
                 else:
                     if steps_done % target_net_update_rate == 0:
                         self.model.target_net.load_state_dict(self.model.policy_net.state_dict())
-
+                
                 if done:
                     self.train_reward_history.append(reward_t.item())
                     break
+                #self.env.engine.print()
+            #Save if model or adv. won
+            if(play_as_white):
+                if(self.env.engine.winner == 1):
+                    #winners.append("Won as White")
+                    winners.append(1)
+                else:
+                    winners.append(-1)
+            else:
+                if(self.env.engine.winner == -1):
+                    #winners.append("Won as Black")
+                    winners.append(1)
+                else:
+                    winners.append(-1)
+                
+        
+            #print amount of 1 and -1 in winners
+            if i_episode & 10 == 0:
+                print("White Winners: ", winners.count(1), "Black Winners: ", winners.count(-1))
+            if i_episode & 1000 == 1:
+                #clear winners array
+                print("Clear: ", i_episode)
+                winners.clear()
+                
             if i_episode % eval_every == 0:
+                #print amount of White winners (1 and True), Black Winner(-1 and False))
+                
+                #self.env.engine.print()
                 self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
                               runs=evaluate_runs, clear=True)
             if i_episode % save_every == 0:
@@ -242,7 +309,7 @@ class QEngine(object):
         """
         Plot the reward history to standard output.
         """
-        rewards = self.play(self.env, runs)
+        rewards = self.play(self.env, runs, playWithRandomStart=True)
         avg_rew = sum(rewards) / len(rewards)
         self.reward_history.append(avg_rew)
 
