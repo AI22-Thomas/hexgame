@@ -29,6 +29,13 @@ class SimpleAdversary(BaseAdversary):
         snaps = os.listdir("models/snaps")
 
         if epoch == 0:
+            #check if snaps in folder
+            if len(snaps) == 0:
+                print("No snaps found in folder")
+                #load from qlearner
+                self.net.load_state_dict(q_learner.model.policy_net.state_dict())
+                self.net.eval()
+                return
             snaps.sort(key=lambda x: float(x.split("_")[1].split(".")[0]))
             #load random model
             snap = snaps[random.randint(0, len(snaps) - 1)]
@@ -75,7 +82,7 @@ class SimpleAdversary(BaseAdversary):
                     self.net.load_state_dict(q_learner.model.policy_net.state_dict())     
                 else:  
                     #update adversary model with current QLearning model or randomly a model from models/snaps
-                    if random.random() < 0.75:
+                    if random.random() < 0.35:
                         print("Changed to current model")
                         self.net.load_state_dict(q_learner.model.policy_net.state_dict())
                     else:

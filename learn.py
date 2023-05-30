@@ -11,7 +11,7 @@ from hex.qmodels.simple_qmodel import SimpleQModel
 from hex.transformers.conv_transformer import ConvTransfomer
 from hex.transformers.simple_transformer import SimpleTransfomer
 
-BOARD_SIZE = 5
+BOARD_SIZE = 7
 import torch
 print(torch.version.cuda)
 print(torch.cuda.is_available())
@@ -31,7 +31,7 @@ q_learner = QEngine(env,
                     # self play
                     adversary=SimpleAdversary(update_threshold=0.95,check_interval=1000),
                     )
-q_learner.learn(batch_size=64,
+q_learner.learn(batch_size=128,
                 num_episodes=2500000,
                 eps_start=0.1,
                 eps_end=0.1,
@@ -40,8 +40,8 @@ q_learner.learn(batch_size=64,
                 # target_net_update_rate=0.001,
                 # soft_update=True,
                 soft_update=False,
-                target_net_update_rate=50,
-                learning_rate=0.0065,
+                target_net_update_rate=10000,
+                learning_rate=0.001,
                 eval_every=1000,
                 save_every=100,
                 random_start=True,
@@ -50,6 +50,6 @@ q_learner.learn(batch_size=64,
                 # start_from_model="models/model_conv.pt",
                 # save_path="models/model_conv.pt",
                 evaluate_runs=150,
-                clip_grads=32,
+                clip_grads=1,
                 playAsColor=0.5
                 )

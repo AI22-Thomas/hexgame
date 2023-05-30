@@ -273,12 +273,10 @@ class QEngine(object):
 
                 # soft update
                 if soft_update:
-                    target_net_state_dict = self.model.target_net.state_dict()
-                    policy_net_state_dict = self.model.policy_net.state_dict()
-                    for key in policy_net_state_dict:
-                        target_net_state_dict[key] = policy_net_state_dict[key] * target_net_update_rate + \
-                                                     target_net_state_dict[key] * (1.0 - target_net_update_rate)
-                    self.model.target_net.load_state_dict(target_net_state_dict)
+                    for target_param, param in zip(self.model.target_net.parameters(), self.model.policy_net.parameters()):
+                        target_param.data.copy_(target_param.data * (1.0 - target_net_update_rate) +
+                                                param.data * target_net_update_rate)
+                        
                 else:
                     if steps_done % target_net_update_rate == 0:
                         self.model.target_net.load_state_dict(self.model.policy_net.state_dict())
