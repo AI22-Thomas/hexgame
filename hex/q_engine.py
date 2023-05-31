@@ -51,7 +51,7 @@ class QEngine(object):
         #    self.device = "cpu"
         #else:
         #    self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cuda")
+        self.device = torch.device("cpu")
 
         self.memory = ReplayMemory(length=memory_length)
         # number of actions in gym environment
