@@ -13,7 +13,7 @@ class BaseAdversary(object):
         pass
 
     @abstractmethod
-    def update(self, q_learner, epoch):
+    def update(self, q_learner, epoch, showPlot=False, random_start=False):
         pass
 
     @abstractmethod

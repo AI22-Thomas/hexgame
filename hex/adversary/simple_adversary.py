@@ -27,7 +27,7 @@ class SimpleAdversary(BaseAdversary):
         self.net.load_state_dict(q_learner.model.policy_net.state_dict())
         self.net.eval()
 
-    def update(self, q_learner, epoch, showPlot=False):
+    def update(self, q_learner, epoch, showPlot=False, random_start=False):
         snaps = os.listdir("models/snaps")
 
         if epoch == 0:
@@ -53,8 +53,8 @@ class SimpleAdversary(BaseAdversary):
 
         if epoch % self.check_interval == 0:
             #Cheeck iuf model is better or worse than before (trained model vs current adversary)
-            rewardsW = q_learner.play(q_learner.env, 100, play_as_black=False, randomColorOff=True, playWithRandomStart=True)
-            rewardsB = q_learner.play(q_learner.env, 100, play_as_black=True, randomColorOff=True, playWithRandomStart=True)
+            rewardsW = q_learner.play(q_learner.env, 100, play_as_black=False, randomColorOff=True, playWithRandomStart=random_start, printBoard=False)
+            rewardsB = q_learner.play(q_learner.env, 100, play_as_black=True, randomColorOff=True, playWithRandomStart=random_start, printBoard=False)
 
             #average reward
             avg_rewW = sum(rewardsW) / len(rewardsW)

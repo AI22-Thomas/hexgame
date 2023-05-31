@@ -13,5 +13,5 @@ class RandomAdversary(BaseAdversary):
     def init(self, q_learner):
         pass
 
-    def update(self, q_learner, epoch):
+    def update(self, q_learner, epoch,showPlot=False, random_start=False):
         pass
