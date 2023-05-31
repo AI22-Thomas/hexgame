@@ -47,11 +47,11 @@ class QEngine(object):
         self.model = model
         self.env = env
         self.chart = chart
-        #if cpu:
-        #    self.device = "cpu"
-        #else:
-        #    self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cpu")
+        if cpu:
+            self.device = "cpu"
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        #self.device = torch.device("cuda")
 
         self.memory = ReplayMemory(length=memory_length)
         # number of actions in gym environment
