@@ -215,7 +215,7 @@ class QEngine(object):
         winners = []
         for i_episode in range(num_episodes):
             # May update the environment, so do that before resetting
-            self.adversary.update(self, epoch=i_episode)
+            self.adversary.update(self, epoch=i_episode,  showPlot=True)
 
             state, info = self.env.reset()
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -316,7 +316,7 @@ class QEngine(object):
             if i_episode % (eval_every/4) == 0:
                 print("Self Wins: ", winners.count(1), "Adv Wins: ", winners.count(-1))
 
-            if i_episode % (eval_every-1) == 0:
+            if i_episode % (eval_every) == 0:
                     winners.clear()
                     #self.evaluate(title="Episode {} finished after {} timesteps".format(i_episode, t + 1),
                     #          runs=evaluate_runs, clear=True)
