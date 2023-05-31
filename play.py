@@ -25,7 +25,7 @@ q_learner = QEngine(env,
 
 # load newest model from models folder
 q_learner.model.load_model("models/model.pt")
-
+#q_learner.model.load_model("models/snaps/model_1685559506.2766936.pt")
 
 def machine(board, action_set):
     board = env.transformer.transform_board(env, env.engine, board)

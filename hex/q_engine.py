@@ -254,7 +254,7 @@ class QEngine(object):
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-            self.env.engine.print()
+            #self.env.engine.print()
 
             for t in count():
                 steps_done += 1
