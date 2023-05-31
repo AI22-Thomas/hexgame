@@ -136,7 +136,6 @@ class QEngine(object):
                 while(action == None):
                     action = self._eps_greedy_action(state, eps=epsRew)#
                     if(i == 48):
-                        print("Break Black at End")
                         break
                     if(action in alreadyDoneStartMovesB):
                         action = None
