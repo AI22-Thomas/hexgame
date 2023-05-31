@@ -215,7 +215,7 @@ class QEngine(object):
         winners = []
         for i_episode in range(num_episodes):
             # May update the environment, so do that before resetting
-            self.adversary.update(self, epoch=i_episode,  showPlot=True)
+            self.adversary.update(self, epoch=i_episode)
 
             state, info = self.env.reset()
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)

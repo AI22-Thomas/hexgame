@@ -4,3 +4,4 @@ simple/models/*
 !simple/models/.gitkeep
 
 .idea
+models/snapsTemp/
