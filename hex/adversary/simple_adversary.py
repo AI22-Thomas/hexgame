@@ -126,6 +126,7 @@ class SimpleAdversary(BaseAdversary):
                 if(self.runs > 1):
                     torch.save(q_learner.model.policy_net.state_dict(), "models/snaps/model_{}.pt".format(time.time()))
                     print("Saved Model at: ", self.runs)
+                    print("-------------------- starting Test Runs --------- ", self.runs)
 
                     #play against all models in models/snaps
                     snaps = os.listdir("models/snaps")
@@ -136,13 +137,13 @@ class SimpleAdversary(BaseAdversary):
                         self.net.eval()
                         rewardsW = q_learner.play(q_learner.env, play_as_black=False, randomColorOff=True, playWithRandomStart=True)
                         rewardsB = q_learner.play(q_learner.env, play_as_black=True, randomColorOff=True, playWithRandomStart=True)
-                        print("Updated adversary at epoch", epoch)
-                        #average reward
                         avg_rewW = sum(rewardsW) / len(rewardsW)
                         avg_rewB = sum(rewardsB) / len(rewardsB)
                         avg_rew = (avg_rewW + avg_rewB) / 2
-                        print("Model: ", snap, "Avg. Reward t, w, b: ", avg_rew, avg_rewW, avg_rewB)
+                        print("Tested against Model: ", snap, "Avg. Reward t, w, b: ", avg_rew, avg_rewW, avg_rewB)
                         allAverages.append (avg_rew)
+
+                    print("-------------------- Ended Test Runs --------- ", self.runs)
                     
                     self.averages.append(allAverages)
                     #save all averages to txt file to open later as plot
