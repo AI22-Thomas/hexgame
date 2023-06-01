@@ -24,8 +24,26 @@ q_learner = QEngine(env,
                     )
 
 # load newest model from models folder
-q_learner.model.load_model("models/model.pt")
-#q_learner.model.load_model("models/snaps/model_1685559506.2766936.pt")
+#q_learner.model.load_model("models/model.pt")
+#q_learner.model.load_model("models/snaps/model_1685639058.2817838.pt")
+
+#load model with last timestamp from models/snapsRandom
+#they are saved like this: torch.save(q_learner.model.policy_net.state_dict(), "models/snaps/model_{}.pt".format(time.time()))
+import os
+import glob
+import torch
+
+# Get list of all .pt files in the directory
+model_files = glob.glob("models/snapsRandom/*.pt")
+
+# Sort files by modification time in descending order
+model_files.sort(key=os.path.getmtime, reverse=True)
+
+# Take the first (newest) file
+latest_model_file = model_files[0]
+
+# Load the model
+q_learner.model.load_model(latest_model_file)
 
 def machine(board, action_set):
     board = env.transformer.transform_board(env, env.engine, board)
@@ -52,8 +70,7 @@ def b_straight(board, action_set):
 black_wins = 0
 white_wins = 0
 for i in range(800):
-    env.engine.reset()
-    
+    env.engine.reset()    
     env.engine.machine_vs_machine(machine, None)
     #env.engine.machine_vs_machine(None, b_machine)
     #env.engine.human_vs_machine(human_player=1, machine=b_machine)
@@ -66,7 +83,8 @@ for i in range(800):
     print("Black wins: ", black_wins)
     print("White wins: ", white_wins)
     #continue on enter
-    input()
+    if(i % 100 == 0):
+      input()
     
 # env.engine.machine_vs_machine(machine, b_machine)
 # env.engine.human_vs_machine(-1, machine)
