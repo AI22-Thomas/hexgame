@@ -9,7 +9,7 @@ arrayOfAverages = []
 with open("models/averages.txt", "r") as f:
     arr = [eval(line) for line in f.readlines()]
 arrayOfAverages = arr
-
+print(arr)
 
 averages = [sum(array) / len(array) if len(array) > 0 else 0 for array in arrayOfAverages]
 
@@ -23,51 +23,6 @@ averages = [sum(array) / len(array) if len(array) > 0 else 0 for array in arrayO
 # Calculate averages
 avg_rewards = [sum(array1)/len(array1) for array1 in arrayOfAverages]
 data = arrayOfAverages
-
-def plotBaseAv(avg_rewards):
-    # Plot
-    plt.plot(range(1, len(avg_rewards) + 1), avg_rewards, marker='o')
-    plt.title('Average reward over time')
-    plt.xlabel('Model iteration')
-    plt.ylabel('Average reward')
-    plt.grid()
-    plt.show()
-
-
-
-
-
-
-def plotavSmallDots(data):
-    # For each model, plot their average reward over time
-    for model_index in range(len(data[-1])):
-        model_scores = [gen[model_index] for gen in data if model_index < len(gen)]
-        generations = range(model_index + 1, len(model_scores) + model_index + 1)
-        plt.plot(generations, model_scores, marker='o', linestyle='-', label=f'Model {model_index+1}')
-
-    plt.title('Model average reward over time')
-    plt.xlabel('Generation')
-    plt.ylabel('Average reward')
-    plt.legend()
-    plt.grid()
-    plt.show()
-
-def plotAverageWithBigDots(data):
-    # For each model, plot their average reward over time
-    for model_index in range(len(data[-1])):
-        model_scores = [gen[model_index] for gen in data if model_index < len(gen)]
-        generations = range(model_index + 1, len(model_scores) + model_index + 1)
-        # Plotting the line with smaller markers
-        plt.plot(generations, model_scores, marker='o', linestyle='-', label=f'Model {model_index+1}', markersize=5)
-        # Plotting the first point with a larger marker
-        plt.plot(generations[0], model_scores[0], marker='o', color='red', markersize=10)
-
-    plt.title('Model average reward over time')
-    plt.xlabel('Generation')
-    plt.ylabel('Average reward')
-    plt.legend()
-    plt.grid()
-    plt.show()
 
 
 
@@ -119,8 +74,57 @@ def plotInteractive(data):
 
     plt.grid()
     plt.show()
+plotInteractive(data)
+
+
+
+
+
+def plotBaseAv(avg_rewards):
+    # Plot
+    plt.plot(range(1, len(avg_rewards) + 1), avg_rewards, marker='o')
+    plt.title('Average reward over time')
+    plt.xlabel('Model iteration')
+    plt.ylabel('Average reward')
+    plt.grid()
+    plt.show()
+
+
+
+
+
+
+def plotavSmallDots(data):
+    # For each model, plot their average reward over time
+    for model_index in range(len(data[-1])):
+        model_scores = [gen[model_index] for gen in data if model_index < len(gen)]
+        generations = range(model_index + 1, len(model_scores) + model_index + 1)
+        plt.plot(generations, model_scores, marker='o', linestyle='-', label=f'Model {model_index+1}')
+
+    plt.title('Model average reward over time')
+    plt.xlabel('Generation')
+    plt.ylabel('Average reward')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+def plotAverageWithBigDots(data):
+    # For each model, plot their average reward over time
+    for model_index in range(len(data[-1])):
+        model_scores = [gen[model_index] for gen in data if model_index < len(gen)]
+        generations = range(model_index + 1, len(model_scores) + model_index + 1)
+        # Plotting the line with smaller markers
+        plt.plot(generations, model_scores, marker='o', linestyle='-', label=f'Model {model_index+1}', markersize=5)
+        # Plotting the first point with a larger marker
+        plt.plot(generations[0], model_scores[0], marker='o', color='red', markersize=10)
+
+    plt.title('Model average reward over time')
+    plt.xlabel('Generation')
+    plt.ylabel('Average reward')
+    plt.legend()
+    plt.grid()
+    plt.show()
 
 plotBaseAv(avg_rewards)
 plotavSmallDots(data)
 plotAverageWithBigDots(data)
-plotInteractive(data)

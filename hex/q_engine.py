@@ -99,7 +99,7 @@ class QEngine(object):
         if(playWithRandomStart):
             totalActionSize = env.board_size * env.board_size
         else:
-            totalActionSize = 1
+            totalActionSize = games
 
         #for i in range(env.board_size * env.board_size):
         for i in range(totalActionSize):
@@ -141,7 +141,7 @@ class QEngine(object):
                     while(action == None):
                         #TODO IMPROVE TO TAKE ONE ACTION AFTER EACH OTHER AND NOT SEARCH RANDOMLY
                         action = self._eps_greedy_action(state, eps=2)
-                        if(i == 48):
+                        if(i == totalActionSize-1):
                             break
                         if(action in alreadyDoneStartMovesB):
                             action = None
@@ -223,7 +223,7 @@ class QEngine(object):
         winners = []
         for i_episode in range(num_episodes):
             # May update the environment, so do that before resetting
-            self.adversary.update(self, epoch=i_episode, random_start=random_start)
+            self.adversary.update(self, epoch=i_episode, random_start=random_start, showPlot=True)
 
             state, info = self.env.reset()
             state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -232,31 +232,42 @@ class QEngine(object):
             # random starting move
             if random_start:
                 if play_as_white:
-                    #do random action
-                    action = self._eps_greedy_action(state, eps=2)
-                    observation, reward, terminated, next_action_space = self.env.step(action.item())
+                    action_eps = self._eps_greedy_action(state, eps=2)
+                    observation, reward, terminated, next_action_space = self.env.step(action_eps.item())
                     state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-                    
-                    #Do adversary action
-                    action = self.adversary.get_action(state, self)
-                    observation, reward, terminated, next_action_space = self.env.step(action.item())
-                    state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)         
-                    
+    
+                    action_adv = self.adversary.get_action(state, self)
+                    observation, reward, terminated, next_action_space = self.env.step(action_adv.item())
+                    next_state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+                    reward_t = torch.tensor([reward if play_as_white else -reward], device=self.device)
+                    mask = [-2] * self.n_actions
+                    for i in next_action_space:
+                        mask[i] = 1
+                    next_action_space = torch.tensor(mask, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    self.memory.save(state, action_eps, next_state, reward_t, next_action_space)
+
                 else:
-                    #Do adversary action
-                    action = self.adversary.get_action(state, self)
-                    observation, reward, terminated, next_action_space = self.env.step(action.item())
+                    action_adv = self.adversary.get_action(state, self)
+                    observation, reward, terminated, next_action_space = self.env.step(action_adv.item())
                     state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-                    #do random action
-                    action = self._eps_greedy_action(state, eps=2)
-                    observation, reward, terminated, next_action_space = self.env.step(action.item())
+                    action_eps = self._eps_greedy_action(state, eps=2)
+                    observation, reward, terminated, next_action_space = self.env.step(action_eps.item())
                     state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
-                    
-                    #Do adversary action
-                    action = self.adversary.get_action(state, self)
-                    observation, reward, terminated, next_action_space = self.env.step(action.item())
-                    state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+                    action_adv = self.adversary.get_action(state, self)
+                    observation, reward, terminated, next_action_space = self.env.step(action_adv.item())
+                    next_state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+    
+                    reward_t = torch.tensor([reward if play_as_white else -reward], device=self.device)
+                    mask = [-2] * self.n_actions
+                    for i in next_action_space:
+                        mask[i] = 1
+                    next_action_space = torch.tensor(mask, dtype=torch.float32, device=self.device).unsqueeze(0)
+                    self.memory.save(state, action_eps, next_state, reward_t, next_action_space)
+
+
                     
            
             # Ensure one move is played if agent is playing as black

@@ -330,7 +330,6 @@ class HexEngine(object):
         # the match
         self.reset()
         while self.winner == 0:
-            self.print()
             if self.player == 1:
                 chosen = machine1(self.board, self.get_action_space())
             if self.player == -1:

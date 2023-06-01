@@ -7,8 +7,4 @@ simple/models/*
 !simple/models/.gitkeep
 
 .idea
-models/snapsTemp/
-models/7x7-0.001LR-10knetR/
-models/newRanModel/
-models/fakedLine/
-models/strongEnemy7x73HL/
+models/savedModels
