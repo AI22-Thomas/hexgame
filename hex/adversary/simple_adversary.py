@@ -31,7 +31,6 @@ class SimpleAdversary(BaseAdversary):
         snaps = os.listdir("models/snaps")
 
         if epoch == 0:
-            self.netChanges +=1
             #self.net.load_state_dict(q_learner.model.policy_net.state_dict())
             #self.net.eval()
             #return
@@ -68,48 +67,14 @@ class SimpleAdversary(BaseAdversary):
                 self.runsAll +=1;
                 print("Updated adversary at epoch", epoch)
                 self.netChanges +=1
-                if(self.runsAll >8):
-                    self.runsAll = 0
-                    ##play against all models in models/snaps
-                    #snaps = os.listdir("models/snaps")
-                    #snaps.sort(key=lambda x: float(x.split("_")[1].split(".")[0]))
-                    #allAverages = []
-                    #for snap in snaps:
-                    #    self.net.load_state_dict(torch.load("models/snaps/" + snap))
-                    #    self.net.eval()
-                    #    rewardsW = q_learner.play(q_learner.env, play_as_black=False, randomColorOff=True, playWithRandomStart=True)
-                    #    rewardsB = q_learner.play(q_learner.env, play_as_black=True, randomColorOff=True, playWithRandomStart=True)
-                    #    print("Updated adversary at epoch", epoch)
-                    #    #average reward
-                    #    avg_rewW = sum(rewardsW) / len(rewardsW)
-                    #    avg_rewB = sum(rewardsB) / len(rewardsB)
-                    #    avg_rew = (avg_rewW + avg_rewB) / 2
-                    #    print("Model: ", snap, "Avg. Reward t, w, b: ", avg_rew, avg_rewW, avg_rewB)
-                    #    allAverages.append (avg_rew)
-                    
-                    #self.averages.append(allAverages)
-                    ##save all averages to txt file to open later as plot
-                    #with open("models/averages.txt", "a") as f:
-                    #    f.write(str(allAverages) + "\n")
-                        
-                    ##plot all 'allAverages' in self.averages 
-                    #for averagesA in self.averages:
-                    #    plt.plot(averagesA)
-                    #    plt.legend()
-                    #    #x titel model
-                    #    #y titel avg reward
-                    #    plt.xlabel("Model")
-                    #    plt.ylabel("Avg. Reward")
-                    #    plt.show()
-
-                    
+                   
                 #update adversary model with current QLearning model or randomly a model from models/snaps
                 if len(snaps) == 0:
                     print("Start... changed to current model")
                     self.net.load_state_dict(q_learner.model.policy_net.state_dict())     
                 else:  
                     #update adversary model with current QLearning model or randomly a model from models/snaps
-                    if self.netChanges == 3:
+                    if self.netChanges >= 3:
                         print("Changed to current model")
                         self.netChanges = 0
                         self.net.load_state_dict(q_learner.model.policy_net.state_dict())
@@ -135,8 +100,8 @@ class SimpleAdversary(BaseAdversary):
                     for snap in snaps:
                         self.net.load_state_dict(torch.load("models/snaps/" + snap))
                         self.net.eval()
-                        rewardsW = q_learner.play(q_learner.env, play_as_black=False, randomColorOff=True, playWithRandomStart=True)
-                        rewardsB = q_learner.play(q_learner.env, play_as_black=True, randomColorOff=True, playWithRandomStart=True)
+                        rewardsW = q_learner.play(q_learner.env, play_as_black=False, randomColorOff=True, playWithRandomStart=random_start)
+                        rewardsB = q_learner.play(q_learner.env, play_as_black=True, randomColorOff=True, playWithRandomStart=random_start)
                         avg_rewW = sum(rewardsW) / len(rewardsW)
                         avg_rewB = sum(rewardsB) / len(rewardsB)
                         avg_rew = (avg_rewW + avg_rewB) / 2

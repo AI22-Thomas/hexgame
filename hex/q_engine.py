@@ -90,7 +90,7 @@ class QEngine(object):
             return torch.tensor([random.sample(action_set, 1)], device=self.device,
                                 dtype=torch.long)
 
-    def play(self, env, games=10, play_as_black=False, randomColorOff=False, printBoard=False, playWithRandomStart = False):
+    def play(self, env, games=10, play_as_black=False, randomColorOff=False, printBoard=False, playWithRandomStart=False):
 
         rewards = []
         alreadyDoneStartMovesW= []
@@ -129,9 +129,11 @@ class QEngine(object):
                             alreadyDoneStartMovesW.append(action)  
                 else:
                     action = self._eps_greedy_action(state, eps=0)
+                    
             #do the action
             observation, reward, terminated, next_actions = env.step(action.item())
-            observation = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
             # select action 2 
             if play_as_black:
@@ -139,7 +141,7 @@ class QEngine(object):
                     action = None
                     while(action == None):
                         #TODO IMPROVE TO TAKE ONE ACTION AFTER EACH OTHER AND NOT SEARCH RANDOMLY
-                        action = self._eps_greedy_action(observation, eps=2)
+                        action = self._eps_greedy_action(state, eps=2)
                         if(i == 48):
                             break
                         if(action in alreadyDoneStartMovesB):
@@ -147,12 +149,14 @@ class QEngine(object):
                         else:
                             alreadyDoneStartMovesB.append(action) 
                 else:
-                    action = self._eps_greedy_action(observation, eps=0)
+                    action = self._eps_greedy_action(state, eps=0)
             else:
-                action = self.adversary.get_action(observation, self)
+                action = self.adversary.get_action(state, self)
+                
             #do the action
-            observation2, reward2, terminated2, _ = env.step(action.item())
-            state = torch.tensor(observation2, dtype=torch.float32, device=self.device).unsqueeze(0)
+            observation, reward2, terminated2, next_actions = env.step(action.item())
+
+            state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
             if printBoard and i & 10:
                 env.engine.print()
