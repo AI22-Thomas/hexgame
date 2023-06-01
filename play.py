@@ -56,7 +56,7 @@ for i in range(800):
     
     #env.engine.machine_vs_machine(machine, None)
     #env.engine.machine_vs_machine(None, b_machine)
-    env.engine.human_vs_machine(human_player=1, machine=b_machine)
+    #env.engine.human_vs_machine(human_player=1, machine=b_machine)
     #env.engine.machine_vs_machine(None, b_machine)
     if env.engine.winner == -1:
         black_wins += 1

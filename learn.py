@@ -12,9 +12,6 @@ from hex.transformers.conv_transformer import ConvTransfomer
 from hex.transformers.simple_transformer import SimpleTransfomer
 
 BOARD_SIZE = 7
-import torch
-print(torch.version.cuda)
-print(torch.cuda.is_available())
 
 env = HexEnv(BOARD_SIZE,
              # transformer=ConvTransfomer(),
@@ -40,16 +37,16 @@ q_learner.learn(batch_size=128,
                 # target_net_update_rate=0.001,
                 # soft_update=True,
                 soft_update=False,
-                target_net_update_rate=50,
+                target_net_update_rate=100,
                 learning_rate=0.0005,
                 eval_every=500,
-                save_every=100,
+                save_every=500,
                 random_start=True,
                 start_from_model="models/model.pt",
                 save_path="models/model.pt",
                 # start_from_model="models/model_conv.pt",
                 # save_path="models/model_conv.pt",
                 evaluate_runs=150,
-                clip_grads=1,
+                clip_grads=32,
                 playAsColor=0.5
                 )
