@@ -31,9 +31,12 @@ class SimpleAdversary(BaseAdversary):
         snaps = os.listdir("models/snaps")
 
         if epoch == 0:
+            #model_1685591667.9141757.pt
+            self.net.load_state_dict(torch.load("models/snaps/" + 'model_1685591667.9141757.pt'))
+
             #self.net.load_state_dict(q_learner.model.policy_net.state_dict())
-            #self.net.eval()
-            #return
+            self.net.eval()
+            return
             #check if snaps in folder
             if len(snaps) == 0:
                 print("No snaps found in folder")
