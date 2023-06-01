@@ -93,7 +93,6 @@ class QEngine(object):
     def play(self, env, games=10, play_as_black=False, randomColorOff=False, printBoard=False, playWithRandomStart = False):
 
         rewards = []
-
         alreadyDoneStartMovesW= []
         alreadyDoneStartMovesB= []
 
@@ -140,7 +139,7 @@ class QEngine(object):
                     action = None
                     while(action == None):
                         #TODO IMPROVE TO TAKE ONE ACTION AFTER EACH OTHER AND NOT SEARCH RANDOMLY
-                        action = self._eps_greedy_action(state, eps=2)
+                        action = self._eps_greedy_action(observation, eps=2)
                         if(i == 48):
                             break
                         if(action in alreadyDoneStartMovesB):
@@ -148,7 +147,7 @@ class QEngine(object):
                         else:
                             alreadyDoneStartMovesB.append(action) 
                 else:
-                    action = self._eps_greedy_action(state, eps=0)
+                    action = self._eps_greedy_action(observation, eps=0)
             else:
                 action = self.adversary.get_action(observation, self)
             #do the action
@@ -185,6 +184,7 @@ class QEngine(object):
                 if terminated2:
                     rewards.append(reward2)
                     break
+
                 if printBoard and i & 10:
                     env.engine.print()
             
