@@ -2,6 +2,7 @@ import torch
 import sys
 
 from hex.adversary.random_adversary import RandomAdversary
+from hex.adversary.simple_adversary import SimpleAdversary
 from hex.hex_env import HexEnv
 from hex.q_engine import QEngine
 from hex.qmodels.conv_qmodel import ConvQModel
@@ -20,7 +21,7 @@ env.reset()
 q_learner = QEngine(env,
                     # ConvQModel(env.dim_input(), env.dim_output())
                     SimpleQModel(env.dim_input(), env.dim_output()),
-                    adversary=RandomAdversary(),
+                    adversary=SimpleAdversary(update_threshold=0.915,check_interval=512),
                     )
 
 # load newest model from models folder
@@ -33,17 +34,22 @@ import os
 import glob
 import torch
 
-# Get list of all .pt files in the directory
-model_files = glob.glob("models/snapsRandom/*.pt")
+# Self
+#latest_model_file = 'models/model.pt'
+latest_model_file = 'models/duelModel/model_1685681692.7975395.pt'
 
-# Sort files by modification time in descending order
-model_files.sort(key=os.path.getmtime, reverse=True)
 
-# Take the first (newest) file
-latest_model_file = model_files[0]
+# Adversary
+latest_model_file2 = 'models/duelModel/model_1685662451.098744.pt'
+
+print(latest_model_file)
+print(latest_model_file2)
 
 # Load the model
 q_learner.model.load_model(latest_model_file)
+
+q_learner.adversary.net.load_state_dict(torch.load(latest_model_file2))
+q_learner.adversary.net.eval()
 
 def machine(board, action_set):
     board = env.transformer.transform_board(env, env.engine, board)
@@ -71,7 +77,7 @@ black_wins = 0
 white_wins = 0
 for i in range(800):
     env.engine.reset()    
-    env.engine.machine_vs_machine(machine, None)
+    env.engine.machine_vs_machine(machine, b_machine)
     #env.engine.machine_vs_machine(None, b_machine)
     #env.engine.human_vs_machine(human_player=1, machine=b_machine)
     #env.engine.machine_vs_machine(None, b_machine)
@@ -85,6 +91,7 @@ for i in range(800):
     #continue on enter
     if(i % 100 == 0):
       input()
-    
+
+print("wait")
 # env.engine.machine_vs_machine(machine, b_machine)
 # env.engine.human_vs_machine(-1, machine)

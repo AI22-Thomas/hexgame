@@ -29,7 +29,7 @@ q_learner = QEngine(env,
                     adversary=SimpleAdversary(update_threshold=0.915,check_interval=512),
                     )
 q_learner.learn(batch_size=64,
-                num_episodes=250000,
+                num_episodes=2500000,
                 eps_start=0.1,
                 eps_end=0.1,
                 eps_decay=1,
