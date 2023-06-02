@@ -219,6 +219,7 @@ class QEngine(object):
         optimizer = optim.SGD(self.model.policy_net.parameters(), lr=learning_rate, momentum=0.9)
 
         steps_done = 0
+        totalActionSize = self.env.board_size * self.env.board_size
 
         winners = []
         for i_episode in range(num_episodes):
@@ -231,8 +232,20 @@ class QEngine(object):
             play_as_white = random.random() > playAsColor
             # random starting move
             if random_start:
+                if (i_episode % totalActionSize == 0):
+                    alreadyDoneStartMovesW = []
+                    alreadyDoneStartMovesB = []
                 if play_as_white:
-                    action_eps = self._eps_greedy_action(state, eps=2)
+                    #action_eps = self._eps_greedy_action(state, eps=2)
+                    action = None
+                    while(action == None):
+                        #TODO IMPROVE TO TAKE ONE ACTION AFTER EACH OTHER AND NOT SEARCH RANDOMLY
+                        action = self._eps_greedy_action(state, eps=2)
+                        if(action in alreadyDoneStartMovesW):
+                            action = None
+                        else:
+                            alreadyDoneStartMovesW.append(action) 
+                    action_eps = action
                     observation, reward, terminated, next_action_space = self.env.step(action_eps.item())
                     state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
     
@@ -252,7 +265,19 @@ class QEngine(object):
                     observation, reward, terminated, next_action_space = self.env.step(action_adv.item())
                     state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-                    action_eps = self._eps_greedy_action(state, eps=2)
+                    #action_eps = self._eps_greedy_action(state, eps=2)
+                    action = None
+                    while(action == None):
+                        #TODO IMPROVE TO TAKE ONE ACTION AFTER EACH OTHER AND NOT SEARCH RANDOMLY
+                        action = self._eps_greedy_action(state, eps=2)
+                        if(i_episode == totalActionSize-1):
+                            print("Breaking, ", len(alreadyDoneStartMovesB))
+                            break
+                        if(action in alreadyDoneStartMovesB):
+                            action = None
+                        else:
+                            alreadyDoneStartMovesB.append(action) 
+                    action_eps = action
                     observation, reward, terminated, next_action_space = self.env.step(action_eps.item())
                     state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
