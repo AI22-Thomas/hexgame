@@ -51,7 +51,7 @@ class QEngine(object):
             self.device = "cpu"
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        #self.device = torch.device("cuda")
+        self.device = torch.device("cpu")
 
         self.memory = ReplayMemory(length=memory_length)
         # number of actions in gym environment
@@ -220,7 +220,8 @@ class QEngine(object):
 
         steps_done = 0
         totalActionSize = self.env.board_size * self.env.board_size
-
+        alreadyDoneStartMovesW = []
+        alreadyDoneStartMovesB = []
         winners = []
         for i_episode in range(num_episodes):
             # May update the environment, so do that before resetting
@@ -233,6 +234,7 @@ class QEngine(object):
             # random starting move
             if random_start:
                 if (i_episode % totalActionSize == 0):
+                    #print("TAS: ", totalActionSize, " white: ", alreadyDoneStartMovesW, " black: ", alreadyDoneStartMovesB)
                     alreadyDoneStartMovesW = []
                     alreadyDoneStartMovesB = []
                 if play_as_white:
@@ -367,8 +369,9 @@ class QEngine(object):
                     winners.append(1)
                 else:
                     winners.append(-1)
-            if i_episode % (eval_every/4) == 0:
-                print("Self Wins: ", winners.count(1), "Adv Wins: ", winners.count(-1))
+            if i_episode % (eval_every) == 0:
+                tot = winners.count(1) + winners.count(-1)
+                print("Self Wins: ", winners.count(1), "Adv Wins: ", winners.count(-1), " ; Percentage; ", winners.count(1)/tot,"/",winners.count(-1)/tot)
 
             if i_episode % (eval_every) == 0:
                     winners.clear()

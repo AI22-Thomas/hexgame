@@ -65,7 +65,7 @@ black_wins = 0
 white_wins = 0
 for i in range(800):
     env.engine.reset()    
-    env.engine.machine_vs_machine(machine, b_machine)
+    env.engine.machine_vs_machine(machine, b_machine, printWinnerBoard=True)
     #env.engine.machine_vs_machine(None, b_machine)
     #env.engine.human_vs_machine(human_player=1, machine=b_machine)
     #env.engine.machine_vs_machine(None, b_machine)

@@ -46,25 +46,42 @@ def b_straight(board, action_set):
         if action[1] == 6:
             return action
     return action_set[0]
+import os
 
+wp_black_wins = 0
+wp_white_wins = 0
 
 black_wins = 0
 white_wins = 0
-for i in range(800):
+for i in range(100000):
     env.engine.reset()    
-    env.engine.machine_vs_machine(machine, None)
-    #env.engine.machine_vs_machine(None, b_machine)
-    #env.engine.human_vs_machine(human_player=1, machine=b_machine)
-    #env.engine.machine_vs_machine(None, b_machine)
+    env.engine.machine_vs_machine(machine, None, verbose=False)
+
+    if env.engine.winner == -1:
+        wp_black_wins += 1
+    else:
+        wp_white_wins += 1
+    totWinsW = (wp_black_wins) + (wp_white_wins)
+    ranWinPercW = (wp_black_wins)/totWinsW
+    aiWinPercW = (wp_white_wins)/totWinsW
+
+    env.engine.machine_vs_machine(None, b_machine, verbose=False)
     if env.engine.winner == -1:
         black_wins += 1
     else:
         white_wins += 1
 
-    print("Black wins: ", black_wins)
-    print("White wins: ", white_wins)
+    totWins = (black_wins) + (white_wins)
+    aiWinPerc = (black_wins)/totWins
+
+    ranWinPerc = (white_wins)/totWins
+
+    if i% 250 == 0: 
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(f"As BLACK: AI wins: {black_wins} ; Random wins: {white_wins}, {aiWinPerc}, {ranWinPerc}\nAs WHITE: AI wins: {wp_white_wins} ; Random wins: {wp_black_wins}, {aiWinPercW}, {ranWinPercW}",end='/r', flush=True)
+
     #continue on enter
-    if(i % 100 == 0):
+    if(i % 10000 == 0):
       input()
     
 # env.engine.machine_vs_machine(machine, b_machine)
