@@ -22,7 +22,7 @@ class QModel(object):
         self.target_net.eval()
 
     def load_model(self, path):
-        self.policy_net.load_state_dict(torch.load(path))
+        self.policy_net.load_state_dict(torch.load(path,map_location=torch.device('cpu') ))
         self.policy_net.eval()
-        self.target_net.load_state_dict(torch.load(path))
+        self.target_net.load_state_dict(torch.load(path,map_location=torch.device('cpu') ) )
         self.target_net.eval()

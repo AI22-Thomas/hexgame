@@ -32,9 +32,9 @@ class SimpleAdversary(BaseAdversary):
 
         if epoch == 0:
             #model_1685591667.9141757.pt
-            #self.net.load_state_dict(torch.load("models/snaps/" + 'model_1685591667.9141757.pt'))
+            self.net.load_state_dict(torch.load("models/snaps/" + 'model_1685710175.5303612.pt',map_location=torch.device('cpu')))
             
-            self.net.load_state_dict(q_learner.model.policy_net.state_dict())
+            #self.net.load_state_dict(q_learner.model.policy_net.state_dict())
             self.net.eval()
             return
             #check if snaps in folder

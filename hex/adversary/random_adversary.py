@@ -14,6 +14,7 @@ class RandomAdversary(BaseAdversary):
         pass
 
     def update(self, q_learner, epoch,showPlot=False, random_start=False):
+        return
         #if every 100 epoch
         if epoch % 500 == 0:
             #Cheeck iuf model is better or worse than before (trained model vs current adversary)
