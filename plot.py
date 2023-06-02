@@ -126,5 +126,5 @@ def plotAverageWithBigDots(data):
     plt.show()
 
 plotBaseAv(avg_rewards)
-plotavSmallDots(data)
-plotAverageWithBigDots(data)
+#plotavSmallDots(data)
+#plotAverageWithBigDots(data)
