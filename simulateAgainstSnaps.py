@@ -74,14 +74,29 @@ for snap in snaps:
     q_learner.adversary.net.load_state_dict(torch.load("models/"+folderPath+"/" + snap))
     q_learner.adversary.net.eval()
     
-    rewardsW = q_learner.play(q_learner.env, 100,play_as_black=False, randomColorOff=True, playWithRandomStart=True)
-    rewardsB = q_learner.play(q_learner.env, 100,play_as_black=True, randomColorOff=True, playWithRandomStart=True)
+    rewardsW = q_learner.play(q_learner.env, 1,play_as_black=False, randomColorOff=True, playWithRandomStart=False)
+    rewardsB = q_learner.play(q_learner.env, 1,play_as_black=True, randomColorOff=True, playWithRandomStart=False)
     avg_rewW = sum(rewardsW) / len(rewardsW)
     avg_rewB = sum(rewardsB) / len(rewardsB)
     avg_rew = (avg_rewW + avg_rewB) / 2
-    print("Tested against Model: ", snap, "Avg. Reward t, w, b: ", avg_rew, avg_rewW, avg_rewB)
+    #print("Tested against Model: ", snap, "Avg. Reward t, w, b: ", avg_rew, avg_rewW, avg_rewB)
     allAverages.append (avg_rew)
 
+arrayOfAverages = allAverages
+print(arrayOfAverages)
+av = sum(arrayOfAverages)/len(arrayOfAverages)
+print("Average: ", av)
+#averages = [sum(array) / len(array) if len(array) > 0 else 0 for array in arrayOfAverages]
+#print("Av1: ", arrayOfAverages)
+##plot averages as a line graph
+#plt.plot(arrayOfAverages)
+#plt.ylabel('averages')
+#plt.xlabel('Episode')
+#plt.show()
+
+
+
+input()
 #black_wins = 0
 #white_wins = 0
 #for i in range(800):
