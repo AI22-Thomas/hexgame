@@ -30,7 +30,7 @@ def machine(board, action_set):
     board = env.transformer.transform_board(env, env.engine, board)
     board = torch.tensor(board, dtype=torch.float32, device=q_learner.device).unsqueeze(0)
     action_set = [env.engine.coordinate_to_scalar(x) for x in action_set]
-    return env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set))
+    return env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set).item())
 
 
 def b_machine(board, action_set):
@@ -38,7 +38,7 @@ def b_machine(board, action_set):
     board = torch.tensor(board, dtype=torch.float32, device=q_learner.device).unsqueeze(0)
     action_set = [env.engine.coordinate_to_scalar(env.engine.recode_coordinates(x)) for x in action_set]
     return env.engine.recode_coordinates(
-        env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set)))
+        env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set).item()))
 
 
 def b_straight(board, action_set):
