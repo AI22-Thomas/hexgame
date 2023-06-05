@@ -1,3 +1,4 @@
+from enum import Flag
 import sys
 
 from hex.adversary.random_adversary import RandomAdversary
@@ -26,7 +27,7 @@ q_learner = QEngine(env,
                     # random play
                     adversary=RandomAdversary(),
                     # self play
-                    #adversary=SimpleAdversary(update_threshold=0.915,check_interval=512),
+                    #adversary=SimpleAdversary(update_threshold=0.96,check_interval=512),
                     )
 q_learner.learn(batch_size=64,
                 num_episodes=2500000,
@@ -37,9 +38,9 @@ q_learner.learn(batch_size=64,
                 # target_net_update_rate=0.001,
                 # soft_update=True,
                 soft_update=False,
-                target_net_update_rate=128,
+                target_net_update_rate=4098,
                 learning_rate=0.00042,
-                eval_every=1048,
+                eval_every=1028,
                 save_every=128,
                 random_start=False,
                 start_from_model="models/model.pt",
