@@ -25,6 +25,9 @@ q_learner = QEngine(env,
 
 # load newest model from models folder
 q_learner.model.load_model("models/model.pt")
+#q_learner.engine.model.net.eval()
+q_learner.model.policy_net.eval()
+
 
 def machine(board, action_set):
     board = env.transformer.transform_board(env, env.engine, board)
@@ -50,19 +53,30 @@ def b_straight(board, action_set):
 
 black_wins = 0
 white_wins = 0
+black_wins2 = 0
+white_wins2 = 0
 for i in range(800):
     env.engine.reset()    
     env.engine.machine_vs_machine(machine, None)
-    #env.engine.machine_vs_machine(None, b_machine)
-    #env.engine.human_vs_machine(human_player=1, machine=b_machine)
-    #env.engine.machine_vs_machine(None, b_machine)
     if env.engine.winner == -1:
         black_wins += 1
     else:
         white_wins += 1
 
-    print("Black wins: ", black_wins)
-    print("White wins: ", white_wins)
+    print("As White: Black wins: ", black_wins)
+    print("As White:  White wins: ", white_wins)
+
+    env.engine.machine_vs_machine(None, b_machine)
+    #env.engine.machine_vs_machine(None, b_machine)
+    #env.engine.human_vs_machine(human_player=1, machine=b_machine)
+    #env.engine.machine_vs_machine(None, b_machine)
+    if env.engine.winner == -1:
+        black_wins2 += 1
+    else:
+        white_wins2 += 1
+
+    print("As Black: Black wins: ", black_wins2)
+    print("As Black: White wins: ", white_wins2)
     #continue on enter
     if(i % 100 == 0):
       input()

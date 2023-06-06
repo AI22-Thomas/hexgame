@@ -311,7 +311,7 @@ class HexEngine(object):
         assert (0 <= coord2 and self.size - 1 >= coord2), "The scalar input is invalid."
         return (coord1, coord2)
 
-    def machine_vs_machine(self, machine1=None, machine2=None):
+    def machine_vs_machine(self, machine1=None, machine2=None, verbose=False):
         """
         Let two AIs play a game against each other.
         The variables machine1 and machine2 must point to a function that maps a board state and an action set to an element of the action set.
@@ -336,10 +336,12 @@ class HexEngine(object):
                 chosen = machine2(self.board, self.get_action_space())
             self.move(chosen)
             if self.winner == 1:
-                self.print()
+                if verbose:
+                    self.print()
                 self._evaluate_white(verbose=True)
             if self.winner == -1:
-                self.print()
+                if verbose:
+                    self.print()
                 self._evaluate_black(verbose=True)
 
     def replay_history(self):

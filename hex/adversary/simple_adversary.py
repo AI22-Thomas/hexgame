@@ -32,7 +32,7 @@ class SimpleAdversary(BaseAdversary):
 
         if epoch == 0:
             #model_1685591667.9141757.pt
-            #self.net.load_state_dict(torch.load("models/snaps/" + 'model_1685591667.9141757.pt'))
+            #self.net.load_state_dict(torch.load("models/snaps/" + 'model_1686001518.5348822.pt'))
             
             self.net.load_state_dict(q_learner.model.policy_net.state_dict())
             self.net.eval()
@@ -56,11 +56,14 @@ class SimpleAdversary(BaseAdversary):
         if(self.runsAll > 1000):
             torch.save(q_learner.model.policy_net.state_dict(), "models/snapsRandom/model_{}.pt".format(time.time()))
             self.runsAll = 0
-                    
+
+              
         if epoch % self.check_interval == 0:
+            q_learner.model.policy_net.eval()
+            self.net.eval()      
             #Cheeck iuf model is better or worse than before (trained model vs current adversary)
-            rewardsW = q_learner.play(q_learner.env,1, play_as_black=False, randomColorOff=True, playWithRandomStart=random_start, printBoard=False)
-            rewardsB = q_learner.play(q_learner.env,1, play_as_black=True, randomColorOff=True, playWithRandomStart=random_start, printBoard=False)
+            rewardsW = q_learner.play(q_learner.env, 1, play_as_black=False, randomColorOff=True, playWithRandomStart=random_start, printBoard=False)
+            rewardsB = q_learner.play(q_learner.env, 1, play_as_black=True, randomColorOff=True, playWithRandomStart=random_start, printBoard=False)
 
             #average reward
             avg_rewW = sum(rewardsW) / len(rewardsW)
@@ -88,8 +91,8 @@ class SimpleAdversary(BaseAdversary):
                     for snap in snaps:
                         self.net.load_state_dict(torch.load("models/snaps/" + snap))
                         self.net.eval()
-                        rewardsW = q_learner.play(q_learner.env, 1,play_as_black=False, randomColorOff=True, playWithRandomStart=random_start)
-                        rewardsB = q_learner.play(q_learner.env, 1,play_as_black=True, randomColorOff=True, playWithRandomStart=random_start)
+                        rewardsW = q_learner.play(q_learner.env, 1, play_as_black=False, randomColorOff=True, playWithRandomStart=random_start)
+                        rewardsB = q_learner.play(q_learner.env, 1, play_as_black=True, randomColorOff=True, playWithRandomStart=random_start)
                         avg_rewW = sum(rewardsW) / len(rewardsW)
                         avg_rewB = sum(rewardsB) / len(rewardsB)
                         avg_rew = (avg_rewW + avg_rewB) / 2
@@ -123,12 +126,11 @@ class SimpleAdversary(BaseAdversary):
                         self.net.load_state_dict(torch.load("models/snaps/" + snap))
                         if showPlot:
                             print("changed to model: ", snap)
-                        
-
-
                 self.runs = 0;
                 self.net.eval()
-                    
+        
+        q_learner.model.policy_net.train()
+        self.net.eval()
                 
     def get_action(self, state, q_learner):
         return q_learner._eps_greedy_action(

@@ -14,7 +14,7 @@ class RandomAdversary(BaseAdversary):
         pass
 
     def update(self, q_learner, epoch,showPlot=False, random_start=False):
-        #if every 100 epoch
+        q_learner.model.policy_net.eval()
         if epoch % 500 == 0:
             #Cheeck iuf model is better or worse than before (trained model vs current adversary)
             rewardsW = q_learner.play(q_learner.env, 100, play_as_black=False, randomColorOff=True, playWithRandomStart=random_start, printBoard=False)
@@ -26,3 +26,4 @@ class RandomAdversary(BaseAdversary):
             avg_rew = (avg_rewW + avg_rewB) / 2
             
             print("Random adversary avg reward: ", avg_rew, ", White: ", avg_rewW, ", Black: ", avg_rewB)
+        q_learner.model.policy_net.train()

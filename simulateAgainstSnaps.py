@@ -74,8 +74,8 @@ for snap in snaps:
     q_learner.adversary.net.load_state_dict(torch.load("models/"+folderPath+"/" + snap))
     q_learner.adversary.net.eval()
     
-    rewardsW = q_learner.play(q_learner.env, 1,play_as_black=False, randomColorOff=True, playWithRandomStart=False)
-    rewardsB = q_learner.play(q_learner.env, 1,play_as_black=True, randomColorOff=True, playWithRandomStart=False)
+    rewardsW = q_learner.play(q_learner.env, 1,play_as_black=False, randomColorOff=True, playWithRandomStart=True)
+    rewardsB = q_learner.play(q_learner.env, 1,play_as_black=True, randomColorOff=True, playWithRandomStart=True)
     avg_rewW = sum(rewardsW) / len(rewardsW)
     avg_rewB = sum(rewardsB) / len(rewardsB)
     avg_rew = (avg_rewW + avg_rewB) / 2

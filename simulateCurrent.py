@@ -28,7 +28,7 @@ import glob
 import torch
 
 # Get list of all .pt files in the directory
-model_files = glob.glob("models/snapsRandom/*.pt")
+model_files = glob.glob("models/snaps/*.pt")
 
 # Sort files by modification time in descending order
 model_files.sort(key=os.path.getmtime, reverse=True)

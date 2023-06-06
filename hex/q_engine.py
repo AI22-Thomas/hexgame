@@ -216,8 +216,15 @@ class QEngine(object):
         def eps_by_step(step):
             return eps_end + (eps_start - eps_end) * math.exp(-1. * step / eps_decay)
 
-        optimizer = optim.SGD(self.model.policy_net.parameters(), lr=learning_rate, momentum=0.9)
-
+        #optimizer = optim.SGD(self.model.policy_net.parameters(), lr=learning_rate, momentum=0.9)
+        #adam optimizer
+        #optimizer = optim.Adam(self.model.policy_net.parameters(), lr=learning_rate)
+        #other optimizer 
+        #optimizer = optim.RMSprop(self.model.policy_net.parameters(), lr=learning_rate)
+        #other optimizer 
+        #optimizer = optim.Adadelta(self.model.policy_net.parameters(), lr=learning_rate)
+        #best optimizer for 7x7 hex game
+        optimizer = optim.Adagrad(self.model.policy_net.parameters(), lr=learning_rate)
         steps_done = 0
 
         winners = []
@@ -235,13 +242,19 @@ class QEngine(object):
                 action = self.adversary.get_action(state, self)
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-
+                first_state = state
             # random starting move
             if random_start:
                 action = torch.tensor([random.sample(self.env.action_space(), 1)], device=self.device,
                                       dtype=torch.long)
-                state, _, _, _ = self.env.step(action.item())
+                state, reward, terminated, next_action_space = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+                if not play_as_white:
+                    self.memory.save(first_state, action, state, reward, next_action_space)
+                    self.optimize_model(optimizer, batch_size, gamma, clip_grads=clip_grads)
+
+
                 action = self.adversary.get_action(state, self)
                 state, _, _, _ = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)

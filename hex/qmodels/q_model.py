@@ -19,10 +19,7 @@ class QModel(object):
         self.policy_net = self.make_network().to(device)
         self.target_net = self.make_network().to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
-        self.target_net.eval()
 
     def load_model(self, path):
         self.policy_net.load_state_dict(torch.load(path))
-        self.policy_net.eval()
         self.target_net.load_state_dict(torch.load(path))
-        self.target_net.eval()
