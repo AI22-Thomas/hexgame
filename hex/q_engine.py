@@ -132,7 +132,7 @@ class QEngine(object):
                     action = self._eps_greedy_action(state, eps=0)
 
             # do the action
-            observation, reward, terminated, next_actions = env.step(action.item())
+            observation, _, _, _ = env.step(action.item())
             state = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
 
             # select action 2 

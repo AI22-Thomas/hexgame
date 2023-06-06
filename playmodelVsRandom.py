@@ -25,15 +25,13 @@ q_learner = QEngine(env,
 
 # load newest model from models folder
 q_learner.model.load_model("models/model.pt")
-#q_learner.engine.model.net.eval()
 q_learner.model.policy_net.eval()
-
 
 def machine(board, action_set):
     board = env.transformer.transform_board(env, env.engine, board)
     board = torch.tensor(board, dtype=torch.float32, device=q_learner.device).unsqueeze(0)
     action_set = [env.engine.coordinate_to_scalar(x) for x in action_set]
-    return env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set).item())
+    return env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set))
 
 
 def b_machine(board, action_set):
@@ -41,7 +39,7 @@ def b_machine(board, action_set):
     board = torch.tensor(board, dtype=torch.float32, device=q_learner.device).unsqueeze(0)
     action_set = [env.engine.coordinate_to_scalar(env.engine.recode_coordinates(x)) for x in action_set]
     return env.engine.recode_coordinates(
-        env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set).item()))
+        env.engine.scalar_to_coordinates(q_learner._eps_greedy_action(board, 0, action_set)))
 
 
 def b_straight(board, action_set):
@@ -49,36 +47,44 @@ def b_straight(board, action_set):
         if action[1] == 6:
             return action
     return action_set[0]
+import os
 
+wp_black_wins = 0
+wp_white_wins = 0
 
 black_wins = 0
 white_wins = 0
-black_wins2 = 0
-white_wins2 = 0
-for i in range(800):
+for i in range(100000):
+    pb = False
+    if i % 100 == 0:
+        pb = True
     env.engine.reset()    
-    env.engine.machine_vs_machine(machine, None)
+    env.engine.machine_vs_machine(machine, None, verbose=False, printBoard = pb)
+
+    if env.engine.winner == -1:
+        wp_black_wins += 1
+    else:
+        wp_white_wins += 1
+    totWinsW = (wp_black_wins) + (wp_white_wins)
+    ranWinPercW = (wp_black_wins)/totWinsW
+    aiWinPercW = (wp_white_wins)/totWinsW
+
+    env.engine.machine_vs_machine(None, b_machine, verbose=False, printBoard = pb)
     if env.engine.winner == -1:
         black_wins += 1
     else:
         white_wins += 1
 
-    print("As White: Black wins: ", black_wins)
-    print("As White:  White wins: ", white_wins)
+    totWins = (black_wins) + (white_wins)
+    aiWinPerc = (black_wins)/totWins
 
-    env.engine.machine_vs_machine(None, b_machine)
-    #env.engine.machine_vs_machine(None, b_machine)
-    #env.engine.human_vs_machine(human_player=1, machine=b_machine)
-    #env.engine.machine_vs_machine(None, b_machine)
-    if env.engine.winner == -1:
-        black_wins2 += 1
-    else:
-        white_wins2 += 1
+    ranWinPerc = (white_wins)/totWins
 
-    print("As Black: Black wins: ", black_wins2)
-    print("As Black: White wins: ", white_wins2)
+    if i% 250 == 0: 
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(f"As BLACK: AI wins: {black_wins} ; Random wins: {white_wins}, {aiWinPerc}, {ranWinPerc}\nAs WHITE: AI wins: {wp_white_wins} ; Random wins: {wp_black_wins}, {aiWinPercW}, {ranWinPercW}",end='/r', flush=True)
     #continue on enter
-    if(i % 100 == 0):
+    if(i % 10000 == 0):
       input()
     
 # env.engine.machine_vs_machine(machine, b_machine)
