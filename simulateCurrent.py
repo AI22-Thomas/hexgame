@@ -34,7 +34,8 @@ model_files = glob.glob("models/snaps/*.pt")
 model_files.sort(key=os.path.getmtime, reverse=True)
 
 # Take the first (newest) file
-latest_model_file = model_files[0]
+#latest_model_file = model_files[0]
+latest_model_file = "models/model.pt"
 
 # Load the model
 q_learner.model.load_model(latest_model_file)

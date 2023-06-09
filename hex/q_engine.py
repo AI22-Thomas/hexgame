@@ -250,9 +250,9 @@ class QEngine(object):
                 state, reward, terminated, next_action_space = self.env.step(action.item())
                 state = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-                if not play_as_white:
-                    self.memory.save(first_state, action, state, reward, next_action_space)
-                    self.optimize_model(optimizer, batch_size, gamma, clip_grads=clip_grads)
+                #if not play_as_white:
+                #    self.memory.save(first_state, action, state, reward, next_action_space)
+                #    self.optimize_model(optimizer, batch_size, gamma, clip_grads=clip_grads)
 
 
                 action = self.adversary.get_action(state, self)

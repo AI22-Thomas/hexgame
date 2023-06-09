@@ -24,7 +24,7 @@ q_learner = QEngine(env,
                     )
 
 # load newest model from models folder
-q_learner.model.load_model("models/model.pt")
+q_learner.model.load_model("models/snaps/model_1686272230.6143627.pt")
 q_learner.model.policy_net.eval()
 
 def machine(board, action_set):
